@@ -1,0 +1,9 @@
+statement: vertical and horizontal step are within accepted segment  m
+Story height: 3.06 m
+Stairs height: 153.0 cm
+Vertical step: 18 cm
+Number of stairs: 9
+Horizontal step: 25 cm
+Stairs length: 225 cm
+Slope angle (rad): 0.6240230529767569
+Slope angle (deg): 35.75388725443675
