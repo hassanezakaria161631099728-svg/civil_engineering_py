@@ -1,0 +1,10 @@
+stairs
+----------------------------------------------------------------------
+                                                statement  story_height  stairs_height  vertical_step     n_stairs  horizontal_step  stairs_length  slope_angle  slope_angle_deg
+vertical and horizontal step are within accepted segment           3.06          153.0             18            9               25            225     0.624023        35.753887
+
+RC_column
+----------------------------------------------------------------------
+        Smaj           NG           NQ           Nu        alpha        Brmin
+      14.553  1086.483321    170.99775     1.723249     0.708333     0.110599
+
