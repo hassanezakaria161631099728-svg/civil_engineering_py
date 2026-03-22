@@ -27,4 +27,11 @@ Q_current_floor,Q_ground_floor):
   Brmin = Nu / (alpha * (fc28 / (0.9 * 1.5) + 0.01 * fe / 1.15)) #m2
 # gamma c is 1.5 and gamma s is 1.15 
   return Smaj,NG,NQ,Nu,alpha,Brmin
-    
+
+def RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d): #units mm and N
+  ft28 = 0.06 * fc28 + 0.6 
+  up = 0.9 * fe * At * ((math.cos(math.radians(alpha)))+(math.sin(math.radians(alpha))))
+  down = b *  (Vu_reduced/(b*d) - 0.3 * ft28)
+  stmin = up / down
+  return ft28,up,down,stmin
+   
