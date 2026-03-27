@@ -13,13 +13,13 @@ T1 = pd.DataFrame({"statement": [statement],"story_height": [story_height],"stai
 "stairs_length": [stairs_length],"slope_angle": [slope_angle],"slope_angle_deg": [slope_angle_deg]})
 #reinforced concrete column
 fc28,fe = 25,400 #MN/m2 or MPA
-S,n= 13.23,10
+S,n= 13.035,7
 G_current_floor,G_roof_top = 665,802 #kg
-Q_current_floor,Q_roof_top,Q_ground_floor = 150,100,250 #kg
-Smaj,NG,NQ,Nu,alpha,Brmin=\
-RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor,Q_ground_floor)
-T2 = pd.DataFrame({"Smaj": [Smaj],"NG": [NG],"NQ": [NQ],
-"Nu": [Nu],"alpha": [alpha],"Brmin": [Brmin]})
+Q_current_floor,Q_roof_top = 150,100 #kg
+Smaj,NG,NQ,Nu,alpha,Brmin,Nd,Bcmin,amin,a,Bc,Br=\
+RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor)
+T2 = pd.DataFrame({"Smaj": [Smaj],"NG": [NG],"NQ": [NQ],"Nu": [Nu],"alpha": [alpha],
+"Brmin": [Brmin],"Nd": [Nd],"Bcmin": [Bcmin],"amin": [amin],"a": [a],"Bc": [Bc],"Br": [Br]})
 #RC shear force units are in mm and N
 At,b,d = 452,250,400
 Vu_reduced = 179000
