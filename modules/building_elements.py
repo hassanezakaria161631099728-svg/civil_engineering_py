@@ -17,10 +17,10 @@ def stairs(story_height, vertical_step, horizontal_step):
  return (statement,story_height,stairs_height,vertical_step,n_stairs,
  horizontal_step,stairs_length,slope_angle,slope_angle_deg)
 
-def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor):
+def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor,Q_ground_floor):
   Smaj = 1.15 * S #m
   NG = 1.1 * (n * G_current_floor + G_roof_top) * Smaj / 100 #converting Kg to KN 
-  NQ = (Q_roof_top + Q_current_floor * (1+0.9+0.8+0.7+0.6+(n-5)*0.5)) * Smaj / 100 #KN
+  NQ = (Q_roof_top + Q_current_floor * (1+0.9+0.8+0.7+0.6+(n-5)*0.5)+Q_ground_floor) * Smaj / 100 #KN
   Nu = (1.35 * NG + 1.5 * NQ) / 1000 # converting KN to MN
   alpha = 0.85 / 1.2
   Brmin = Nu / (alpha * (fc28 / (0.9 * 1.5) + 0.01 * fe / 1.15)) #m2
