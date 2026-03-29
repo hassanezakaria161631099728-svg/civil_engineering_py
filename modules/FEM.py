@@ -1243,7 +1243,7 @@ def plot_grid_elevation_view(nodes, nx, nz):
     ax.grid(True)
     plt.show()
 
-def plot_grid_elevation_view_XZ(nodes, elements, nx, nz):
+def plot_grid_elevation_view_XZ(nodes, elements, nx, nz,folder,filename):
     fig, ax = plt.subplots(figsize=(6, 6))
 
     # --- plot elements first (so nodes appear on top) ---
@@ -1264,11 +1264,14 @@ def plot_grid_elevation_view_XZ(nodes, elements, nx, nz):
             ax.plot(x, z, 'ko', markersize=6)  # upper node
 
         ax.text(x + 0.05, z + 0.05, str(node_id), fontsize=10)
-
     ax.set_aspect('equal')
     ax.set_xlabel("X")
     ax.set_ylabel("Z")
     ax.grid(True)
+    # Full path
+    filepath = os.path.join(folder, filename)
+    # Save figure
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_grid_elevation_view_YZ(nodes, elements, ny, nz):

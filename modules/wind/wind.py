@@ -99,8 +99,11 @@ def pression_dynamique_de_pointe(b,d,geo,ba,wzs,gcs):
     Twz = wzs[wzs.iloc[:, 0] == wz].iloc[0]
     qref = Twz.iloc[1]
     # building height depending on type
+    ba["floor_height_m"] = ba["floor_height_m"].astype(float)
     floor_height = ba["floor_height_m"].iloc[0]
+    ba["n_floors"] = ba["n_floors"].astype(float)
     number_floors = ba["n_floors"].iloc[0]
+    ba["hp_m"] = ba["hp_m"].astype(float)
     hp=ba["hp_m"].iloc[0] 
     h=floor_height*number_floors+hp
     # effective dimension

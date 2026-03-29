@@ -20,7 +20,8 @@ def purlin(b1,b2,hangarf,chI,beamT):
     t = Ly / 4.0
     alpha = ba["slope_angle_deg"].iloc[0]   # ba{1,5}
     # === Profile characteristics ===
-    indata = pd.read_excel(beamT,sheet_name="IPE")
+    #indata = pd.read_excel(beamT,sheet_name="IPE")
+    indata = beamT["IPE"]
     Tpanne,Iymin,lb = beam3(t,qw,indata)
     # === Loads on the most unfavorable panne ===
     qgc = 15.21        # daN/m (covering weight)
@@ -41,7 +42,8 @@ def purlin(b1,b2,hangarf,chI,beamT):
     loads = pd.DataFrame({"axis": ["y", "z"],
         "Q": [Qy, Qz],"qw": [qw, 0],"qwp": [qwp, 0],"qs": [qsy, qsz],"qg": [qgy, qgz]})
     # === Call purlin2 ===
-    Tcomb = pd.read_excel(beamT,sheet_name="comb_psi")
+    #Tcomb = pd.read_excel(beamT,sheet_name="comb_psi")
+    Tcomb = beamT["comb_psi"]
     acp,combdel,combV,combM,delmax,del2,Vysdn,Vzsdp,Mysdn,Mzscorr,Mysdp,Mzsdp=purlin2(
     Tpanne,qgy,qgz,qw,Qy,Qz,qwp,qsy,qsz,Ly,Tcomb)
     # === Verification (ELU & ELS) ===
@@ -65,25 +67,41 @@ def purlin(b1,b2,hangarf,chI,beamT):
     return Tpanne, T2, loads, acp, combdel, combV, combM, T8, T9, T10
 
 def purlin0(hangarf, chapterI):
-    geo = pd.read_excel(hangarf, sheet_name="geography attributes")
-    ba = pd.read_excel(hangarf, sheet_name="building attributes")
-    in1 = pd.read_excel(chapterI, sheet_name="T1")
-    in2 = pd.read_excel(chapterI, sheet_name="T2")
-    in3 = pd.read_excel(chapterI, sheet_name="T3")
-    in6 = pd.read_excel(chapterI, sheet_name="T6")
-    in7 = pd.read_excel(chapterI, sheet_name="T7")
-    in8 = pd.read_excel(chapterI, sheet_name="T8")
-    Troof1 = pd.read_excel(chapterI, sheet_name="Troof1")
-    Troof2 = pd.read_excel(chapterI, sheet_name="Troof2")
+#    geo = pd.read_excel(hangarf, sheet_name="geography attributes")
+    geo = hangarf["geography_attributes"] 
+#    ba = pd.read_excel(hangarf, sheet_name="building attributes")
+    ba = hangarf["building_attributes"] 
+#    in1 = pd.read_excel(chapterI, sheet_name="T1")
+    in1 = chapterI["T1"]
+#    in2 = pd.read_excel(chapterI, sheet_name="T2")
+#    in3 = pd.read_excel(chapterI, sheet_name="T3")
+#    in6 = pd.read_excel(chapterI, sheet_name="T6")
+#    in7 = pd.read_excel(chapterI, sheet_name="T7")
+#    in8 = pd.read_excel(chapterI, sheet_name="T8")
+#    Troof1 = pd.read_excel(chapterI, sheet_name="Troof1")
+#    Troof2 = pd.read_excel(chapterI, sheet_name="Troof2")
+    in2 = chapterI["T2"]
+    in3 = chapterI["T3"]
+    in6 = chapterI["T6"]
+    in7 = chapterI["T7"]
+    in8 = chapterI["T8"]
+    Troof1 = chapterI["Troof1"]
+    Troof2 = chapterI["Troof2"]
+
     return ba,geo,Troof1,Troof2,in1,in2,in3,in6,in7,in8
 
 def purlin1(ba, bt, b, Troof1, T1, T2, T3, bp):
     # Extract values from input tables (adjusted for 0-based indexing in Python)
+    ba["Lx_m"] = ba["Lx_m"].astype(float)
     L = ba["Lx_m"].iloc[0]   
+    ba["Ly_m"] = ba["Ly_m"].astype(float)
     T = ba["Ly_m"].iloc[0]   
     t = T / 4.0
+    T1["e_m"] = T1["e_m"].astype(float)
     e   = T1["e_m"].iloc[0]          # table1{1,4}
+    T2["qpze_N_m_2"] = T2["qpze_N_m_2"].astype(float)
     qpze = T2["qpze_N_m_2"].iloc[0]  # table2{1,3}
+    T3["ipf1"] = T3["ipf1"].astype(float)
     ipf = T3["ipf1"].iloc[0]         # table3{1,3}
     if bt == 'gable':
         if b == T:  # wind 1 direction (theta = 0)
@@ -239,7 +257,10 @@ def purlin23(gy, w, Qy, wp, sy,Tcomb):
     n = 8
     a = np.ones(n)  # vector of ones
     cas = ["ELS"] * n
-    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+#    df.set_index("loads", inplace=True)
+#    psi0 = Tcomb.loc["snow_load", "psi0"]
+#    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+    psi0 = Tcomb[Tcomb["loads"] == "snow_load"]["psi0"].iloc[0] 
     psi0_array=[psi0]*n    
     # Expand vectors 
     V1 = np.concatenate([del1, del0])
@@ -271,7 +292,8 @@ def purlin24(gy,gz,w,Qy,sy,wp,Qz,sz,Tcomb):
     combVvals = np.zeros(n)
     a = np.ones(n)        # like MATLAB zeros then set to 1
     cas = ["ELU"] * n
-    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+#    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+    psi0 = Tcomb[Tcomb["loads"] == "snow_load"]["psi0"].iloc[0] 
     psi0_array=[psi0]*n    
     # Apply combination function
     for i in range(n):
@@ -305,7 +327,8 @@ def purlin_tie_rod(t,qgp,qgc,s,alpha,L,Tcomb):
     Q1 = s * B
     # Combination (ELU, snow case)
           #comb(G,Q1,Qi,cas,a,psi0):
-    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+#    psi0 = Tcomb.loc[Tcomb["loads"] == "snow load", "psi0"].values[0]
+    psi0 = Tcomb[Tcomb["loads"] == "snow_load"]["psi0"].iloc[0] 
     qsdt = comb(G,Q1,0,"ELU",1,psi0)
     # Tie force
     NT = 1.25 * qsdt * np.sin(np.radians(alpha)) * t / 2

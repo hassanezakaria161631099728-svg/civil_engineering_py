@@ -1,19 +1,23 @@
 import pandas as pd
 import numpy as np
-from shared_functions.utils import (beam3,moment_shear_defection,find_vplrd,resistance,
+from modules.utils import (beam2,moment_shear_defection,find_vplrd,resistance,
 lateral_torsional_buckling,find_epf,buckling1,buckling2,buckling3)
-from shared_functions.wind.cpe import wall,cpe_from_s
-from shared_functions.wind.action_of_set import fwe
+from modules.wind.cpe import wall,cpe_from_s
+from modules.wind.action_of_set import fwe
 def girt(hangarf, chI, beamT):
     # call to girt0
     Lx, Ly, ba, Tin1, Tin2, Tin3, Tin6, Tin7, Tin8 = girt0(hangarf, chI)    
+    Tin1["e_m"] = Tin1["e_m"].astype(float)
     e1 = Tin1["e_m"].iloc[0]   
+    Tin6["e_m"] = Tin6["e_m"].astype(float)
     e2 = Tin6["e_m"].iloc[0]
     b1 = Lx
     b2 = Ly
     lf = Lx / 4
     t = Ly / 4
+    ba["floor_height_m"] = ba["floor_height_m"].astype(float)
     floor_height=ba["floor_height_m"].iloc[0]
+    ba["n_floors"] = ba["n_floors"].astype(float)
     n_floors=ba["n_floors"].iloc[0]
     h2 = floor_height*n_floors    
     qgb = 11.89  # daN/m    
@@ -23,15 +27,18 @@ def girt(hangarf, chI, beamT):
     # determining the fit UPE for girts
     qws = max(qws1, -qws2) / 10
     qwf = max(-qwf1, qwf2) / 10    
-    TUPE = pd.read_excel(beamT, sheet_name='UPE')    
-    sls,_,_ = beam3(t, qws, TUPE) # sgs selelected girt side
-    slf,_,_ = beam3(lf, qwf, TUPE) # sgf selelected girt front
+    TUPE = beamT["UPE"] 
+#    TUPE = pd.read_excel(beamT, sheet_name='UPE')    
+    sls,_,_ = beam2(t, qws, TUPE) # sgs selelected girt side
+    slf,_,_ = beam2(lf, qwf, TUPE) # sgf selelected girt front
+    sls["h"] = sls["h"].astype(float)
+    slf["h"] = slf["h"].astype(float)
     if sls["h"].iloc[0] < slf["h"].iloc[0]:
         Tgirt = slf
         ll = lf
         qw = qwf
         print("girt of front has more load")
-    elif slf[0][1] < sls[0][1]:
+    elif slf["h"].iloc[0] < sls["h"].iloc[0]:
         Tgirt = sls
         ll = t
         qw = qws
@@ -40,6 +47,7 @@ def girt(hangarf, chI, beamT):
         Tgirt = slf
         ll = lf
         qw = qwf    
+    Tgirt["P"] = Tgirt["P"].astype(float)
     qgl = Tgirt["P"].iloc[0]   
     qg = qgl + qgb       # daN/ml    
     # T2 table
@@ -77,14 +85,16 @@ def girt(hangarf, chI, beamT):
 
 def girt0(hangarf, chI):
     # Read Excel sheets
-    ba = pd.read_excel(hangarf, sheet_name='building attributes')
-    in1 = pd.read_excel(chI, sheet_name='T1')
-    in2 = pd.read_excel(chI, sheet_name='T2')
-    in3 = pd.read_excel(chI, sheet_name='T3')
-    in6 = pd.read_excel(chI, sheet_name='T6')
-    in7 = pd.read_excel(chI, sheet_name='T7')
-    in8 = pd.read_excel(chI, sheet_name='T8')
+    ba = hangarf["building_attributes"] 
+    in1 = chI["T1"] 
+    in2 = chI["T2"] 
+    in3 = chI["T3"] 
+    in6 = chI["T6"] 
+    in7 = chI["T7"] 
+    in8 = chI["T8"] 
+    ba["Lx_m"] = ba["Lx_m"].astype(float)    
     Lx = ba["Lx_m"].iloc[0]
+    ba["Ly_m"] = ba["Ly_m"].astype(float)    
     Ly = ba["Ly_m"].iloc[0]
     return Lx, Ly, ba, in1, in2, in3, in6, in7, in8
 
@@ -115,11 +125,14 @@ def girt1(Lx, Ly, e, b, T2, T3):
     blm = np.array([1, 0, 0, 1, 1])
     qw = np.zeros(n - 1)
     epf = cpe_from_s(n, Twall, sw)
+    T2["qpze_N_m_2"] = T2["qpze_N_m_2"].astype(float)
     qpze1=T2["qpze_N_m_2"].iloc[0]
     qpze2=0
     we = fwe(epf, sw, qpze1, qpze2)
     # MATLAB table3{1:n-1,5} → pandas iloc[0:n-1, 4]
-    wi = T3.iloc[0:n-1, 4].to_numpy()
+    T3["wi1"] = T3["wi1"].astype(float)
+    wi = T3["wi1"].to_numpy()
+#    wi = T3.iloc[0:n-1, 4].to_numpy()
     for i in range(n - 1):
         qw[i] = (cd[i] * we[i] - wi[i]) * blm[i]  # daN/ml
     qwa = qw[3]
@@ -162,18 +175,27 @@ def internal_column(Tgirt, hangarf, chI, beamT):
     # call girt0
     Lx, Ly, ba, Tin1, Tin2, Tin3, Tin6, Tin7, Tin8 = girt0(hangarf, chI)
     # extract values
+    Tin1["e_m"] = Tin1["e_m"].astype(float)
     e1 = Tin1["e_m"].iloc[0]
+    Tin6["e_m"] = Tin6["e_m"].astype(float)
     e2 = Tin6["e_m"].iloc[0]
-    floor_height=ba["floor_height_m"].iloc[0] 
-    n_floors= ba["n_floors"].iloc[0]
+    ba["floor_height_m"] = ba["floor_height_m"].astype(float)
+    floor_height = ba["floor_height_m"].iloc[0] 
+    ba["n_floors"] = ba["n_floors"].astype(float)
+    n_floors = ba["n_floors"].iloc[0]
+    ba["hp_m"] = ba["hp_m"].astype(float)
     hp= ba["hp_m"].iloc[0]
     h1 = floor_height*n_floors+hp
     h2 = floor_height*n_floors
     b1 = Ly
     b2 = Lx
+    Tin2["qpze_N_m_2"] = Tin2["qpze_N_m_2"].astype(float)
     qpze1 = Tin2["qpze_N_m_2"].iloc[0]
+    Tin7["qpze_N_m_2"] = Tin7["qpze_N_m_2"].astype(float)
     qpze2 = Tin7["qpze_N_m_2"].iloc[0]
+    Tin3["wi1"] = Tin3["wi1"].astype(float)
     wi1 = Tin3["wi1"].iloc[0]
+    Tin8["wi1"] = Tin8["wi1"].astype(float)
     wi2 = Tin8["wi1"].iloc[0]
     qgb = 11.89  # daN
     # inter_columns
@@ -182,8 +204,9 @@ def internal_column(Tgirt, hangarf, chI, beamT):
     qwp, sd, _ , _ , _  = inter_column1(b2, Lx, Ly, e2, qpze2, wi2, h2)
     qw = max(-qwn, qwp)  # T6, T7, T8
     # read HEB
-    THEB = pd.read_excel(beamT, sheet_name="HEB")
-    Tinter_column, Iymin, lb = beam3(h1, qw, THEB)
+    THEB = beamT["HEB"] 
+#    THEB = pd.read_excel(beamT, sheet_name="HEB")
+    Tinter_column, Iymin, lb = beam2(h1, qw, THEB)
     # T5 table
     T5 = pd.DataFrame([{
         "qwn": qwn, "bpa": bpa, "ha": ha, "sa": sa, "sb": sb,
@@ -195,10 +218,12 @@ def internal_column(Tgirt, hangarf, chI, beamT):
     Avy, Vplrdy = find_vplrd("y", Tinter_column, "HEB", Vysd)
     nl = h2
     bp = Lx / 4
-    pl = Tgirt["P"].iloc[0]   # poids linéaire lisse
+    Tgirt["P"] = Tgirt["P"].astype(float)
+    pl = Tgirt["P"].iloc[0]   # linear mass girt
     NGl = nl * bp * pl
     NGb = (sd - bp * 2) * qgb
-    plp = Tinter_column.iloc[0, 7]   # poids linéaire potelet
+    Tinter_column["P"] = Tinter_column["P"].astype(float)
+    plp = Tinter_column["P"].iloc[0]   # linear mass inter column
     NGp = plp * h1
     NG = NGl + NGb + NGp
     Nsd = 1.35 * NG
@@ -213,8 +238,9 @@ def internal_column(Tgirt, hangarf, chI, beamT):
     }])
     fy = 2350
     # buckling
-    lay, layb, alphay, phiy, xiy,_,_ = buckling1(h1, "y", Tinter_column, "simplement appuye", 1, 1)
-    laz, lazb, alphaz, phiz, xiz,_,_ = buckling1(h1, "z", Tinter_column, "simplement appuye", 1, 1)
+    #Lf,lambda_, lambdabar, alpha, phi, Xi, Nbrd, Ntrd
+    _,lay, layb, alphay, phiy, xiy,_,_ = buckling1(h1, "y", Tinter_column, "simplement appuye", 1, 1)
+    _,laz, lazb, alphaz, phiz, xiz,_,_ = buckling1(h1, "z", Tinter_column, "simplement appuye", 1, 1)
     uy, ky = buckling2(layb, Tinter_column, Nsd, xiy, fy, "y")
     xmin, rf = buckling3(Nsd, fy, xiy, xiz, ky, Mysdp, Tinter_column)
     T7 = pd.DataFrame([{
@@ -223,7 +249,7 @@ def internal_column(Tgirt, hangarf, chI, beamT):
         "Nsd": Nsd, "uy": uy, "ky": ky, "xmin": xmin, "rf": rf
     }])
     # lateral_torsional_buckling
-    lazd, lazbd, alphazd, phizd, xizd,_,_ = buckling1(h1 - 1, "z", Tinter_column,
+    _,lazd, lazbd, alphazd, phizd, xizd,_,_ = buckling1(h1 - 1, "z", Tinter_column,
                                                "simplement appuye", 1, 1)
     ult, klt, L1, Lfz, zg, k, c1, c2, lalt, laltb, alphalt, philt, xlt, rd = \
         lateral_torsional_buckling(h1 - 1, lazbd, "simplement appuye", 

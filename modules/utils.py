@@ -16,8 +16,10 @@ def comb(G,Q1,Qi,cas,a,psi0):
     return S
 
 def snow(geo, ba, b, Lx, Ly):
+    ba["slope_angle_deg"] = ba["slope_angle_deg"].astype(float)
     alpha = ba["slope_angle_deg"].iloc[0]   # ba{1,5} in MATLAB
     zone = geo["snow_zone"].iloc[0]   # geo{1,3}
+    geo["altitude"] = geo["altitude"].astype(float)
     H = geo["altitude"].iloc[0]      # geo{1,4}
     # --- snow characteristic load (kN/m^2) ---
     if zone == 'A':
@@ -48,25 +50,61 @@ def snow(geo, ba, b, Lx, Ly):
         res = 0.0  # fallback if b is neither Lx nor Ly
     return res
 
+def beam2(L, q, T, column_title):
+
+    lb = L / 250 * 100  # cm
+    Ea = 2.1e5  # MPa
+
+    Iymin = (5 * 250 / 384) * (q / 100) * (L * 100) ** 3 / (Ea * 10)  # cm^4
+
+    # Convert safely
+    T[column_title] = pd.to_numeric(T[column_title], errors="coerce")
+
+    # Filter valid beams
+    valid = T[T[column_title] >= Iymin]
+
+    if valid.empty:
+        print("No rows satisfy the condition.")
+        return None
+
+    # Select smallest Iy ≥ Iymin
+    selected_beam = valid.loc[[valid[column_title].idxmin()]]
+
+    return selected_beam, Iymin, lb
+
 def beam3(L,q,T):
     lb = L / 250 * 100  # cm
     Ea = 2.1e5  # MPa
     Iymin = (5 * 250 / 384) * (q / 100) * (L * 100) ** 3 / (Ea * 10)  # cm^4
-    sb = beam4(Iymin, 10, T)  # Call beam4
-    return sb, Iymin, lb
-
-def beam4(minval,column,T):
-    # Adjust MATLAB 1-based column index to Python 0-based
-    col_idx = column - 1
-    vals = pd.to_numeric(T.iloc[:, col_idx], errors="coerce")
-    valid_rows = vals[vals >= minval]
+#    sb = beam4(Iymin, 10, T)  # Call beam4 selected beam
+    T["Iy"] = T["Iy"].astype(float)
+    vals = pd.to_numeric(T["Iy"])
+#    vals = pd.to_numeric(T.iloc[:, col_idx], errors="coerce")
+    valid_rows = vals[vals >= Iymin]
     if valid_rows.empty:
         print("No rows satisfy the condition.")
         return None
     else:
         t_val = valid_rows.min()
         t_idx = vals[vals == t_val].index[0]
-    return T.loc[[t_idx]]
+        selected_beam = T.loc[[t_idx]] 
+    return selected_beam, Iymin, lb
+
+def beam4(minval,column_title,T):
+    # Convert safely
+    T[column_title] = pd.to_numeric(T[column_title], errors="coerce")
+
+    # Filter valid beams
+    valid = T[T[column_title] >= minval]
+
+    if valid.empty:
+        print("No rows satisfy the condition.")
+        return None
+
+    # Select smallest Iy ≥ Iymin
+    selected_beam = valid.loc[[valid[column_title].idxmin()]]
+
+    return selected_beam
 
 def find_vplrd(cas, sb, b, Vsd):
     # Extract properties (MATLAB sb{1,n} corresponds to sb.iloc[n-1])
@@ -178,14 +216,17 @@ def lateral_torsional_buckling(L, lazb, lt, Nsd, xiz, fy, T, Mzscorr, kz, Mysdn)
         (ult, klt, L1, Lfz, zg, k, c1, c2, lalt, laltb, alphalt, philt, xlt, r)
     """
     # Extract beam properties (MATLAB is 1-based, Python is 0-based)
-    row = T.squeeze()  # converts 1-row DataFrame → Series
-    A = row["A"]   # cm^2
-    h = row["h"]   # cm
-    Iz = row["Iz"] # cm^4
-    It = row["It"] # cm^4
-    wply = row["wply"] # cm^3
-    wplz = row["wplz"] # cm^3
-    Iw = row["Iw"]  # cm^6 ?
+#    row = T.squeeze()  # converts 1-row DataFrame → Series
+    numeric_cols = ["A", "h", "Iz", "It","wply","wplz","Iw"]
+    for col in numeric_cols:
+        T[col] = pd.to_numeric(T[col], errors="coerce")
+    A = T["A"].iloc[0]   
+    h = T["h"].iloc[0]   # cm
+    Iz = T["Iz"].iloc[0] # cm^4
+    It = T["It"].iloc[0] # cm^4
+    wply = T["wply"].iloc[0] # cm^3
+    wplz = T["wplz"].iloc[0] # cm^3
+    Iw = T["Iw"].iloc[0]  # cm^6 ?
     betam = 1.3
     ult = 0.15 * (lazb * betam - 1)
     klt = 1 - (ult * Nsd) / (xiz * A * fy)
@@ -330,20 +371,29 @@ def buckling1(L, cas, T, cas2, Ncsd, Ntsd):
         Design tensile resistance [kN].
     """
     # Extract values (assuming T is DataFrame with same structure as MATLAB table)
+    numeric_cols = ["h", "b"]  
+    for col in numeric_cols:
+        T[col] = pd.to_numeric(T[col], errors="coerce")
+
     h = T["h"].iloc[0]
     b = T["b"].iloc[0]
     if cas== "corner": 
-         tf = T["t"].iloc[0]/10
+        T["t"] = T["t"].astype(float)
+        tf = T["t"].iloc[0] / 10
     else: 
-         tf= T["tf"].iloc[0]
+        T["tf"] = T["tf"].astype(float)
+        tf= T["tf"].iloc[0] / 10
     A = T["A"].iloc[0]
     fy = 2350.0  # daN/cm²
     ca, cb, cc = 0.21, 0.34, 0.49
     if cas == "y":
+        T["iy"] = T["iy"].astype(float)
         i1 = T["iy"].iloc[0]
     elif cas == "z":
+        T["iz"] = T["iz"].astype(float)
         i1 = T["iz"].iloc[0]
     elif cas == "corner":
+        T["i"] = T["i"].astype(float)
         i1 = T["i"].iloc[0]
     else:
         raise ValueError("Invalid cas (must be 'y', 'z' or 'corner')")
@@ -410,12 +460,17 @@ def buckling2(lab, T, Nsd, xi, fy, cas):
     u : float
     k : float
     """
+    T["A"] = T["A"].astype(float)
     A = T["A"].iloc[0]  # T{1,9} in MATLAB
     if cas == "z":
+        T["welz"] = T["welz"].astype(float)
         wel = T["welz"].iloc[0]  # T{1,15}
+        T["wplz"] = T["wplz"].astype(float)
         wpl = T["wplz"].iloc[0]  # T{1,19}
     elif cas == "y":
+        T["wely"] = T["wely"].astype(float)
         wel = T["wely"].iloc[0]  # T{1,11}
+        T["wply"] = T["wply"].astype(float)
         wpl = T["wply"].iloc[0]  # T{1,18}
     else:
         raise ValueError("cas must be 'y' or 'z'")
@@ -426,7 +481,7 @@ def buckling2(lab, T, Nsd, xi, fy, cas):
         print("Stability under buckling is aquired")    
     return u, k
 
-def buckling3(Nsd, fy, xiy, xiz, ky, Mysd, T7):
+def buckling3(Nsd, fy, xiy, xiz, ky, Mysd, T):
     """
     Buckling resistance check.
     Parameters
@@ -449,8 +504,10 @@ def buckling3(Nsd, fy, xiy, xiz, ky, Mysd, T7):
     xmin : float
     r : float
     """
-    A = T7.iloc[0, 8]    # T7{1,9}
-    wply = T7.iloc[0, 17]  # T7{1,18}
+    T["A"] = T["A"].astype(float)
+    A = T["A"].iloc[0]  # T{1,9} in MATLAB
+    T["wply"] = T["wply"].astype(float)
+    wply = T["wply"].iloc[0]  # T{1,9} in MATLAB
     xmin = min(xiy, xiz)
     r = Nsd / (xmin * A * fy / 1.1) + (ky * Mysd * 100) / (wply * fy / 1.1)
     if r < 1:

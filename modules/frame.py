@@ -1,14 +1,18 @@
 import numpy as np
 import pandas as pd
-from shared_functions.FEM import FEM2D_frame,plot_frame
-from shared_functions.utils import snow
+from modules.FEM import FEM2D_frame,plot_frame
+from modules.utils import snow
 def frame1(nodes,elements,constraints,chIII_1,q0,q1,q2,q3,q4,q5,loads,distributed_load_reference):
 #frame properties 
- Trafter = pd.read_excel(chIII_1,sheet_name="Ttrafter")
+ Trafter = chIII_1["Trafter"] 
+ Trafter["A"] = Trafter["A"].astype(float)
  A_rafter = Trafter["A"].iloc[0]*10e-4
+ Trafter["Iy"] = Trafter["Iy"].astype(float)
  I_rafter = Trafter["Iy"].iloc[0]*10e-8
- Tcolumn = pd.read_excel(chIII_1,sheet_name="Tcolumn")
+ Tcolumn = chIII_1["Tcolumn"] 
+ Tcolumn["A"] = Tcolumn["A"].astype(float)
  A_column = Tcolumn["A"].iloc[0]*10e-4
+ Tcolumn["Iy"] = Tcolumn["Iy"].astype(float)
  I_column = Tcolumn["Iy"].iloc[0]*10e-8
  E=210e6
  if distributed_load_reference=="global": 
@@ -52,7 +56,8 @@ def frame1(nodes,elements,constraints,chIII_1,q0,q1,q2,q3,q4,q5,loads,distribute
   {'type':'beam','A':A_column,'I':I_column,'E':E,'q':q5}, #KN/m
  ]
  else: raise ValueError("unidentified distributed_load_reference")
- plot_frame(nodes, elements, elem_props, loads, constraints, load_scale=0.01) 
+#plot_frame(nodes, elements, elem_props, loads, constraints, load_scale):
+# plot_frame(nodes, elements, elem_props, loads, constraints, load_scale=0.01) 
  u, R, N, V, M=\
  FEM2D_frame(nodes, elements, elem_props, loads, constraints, E)
  ux1=u[3]
@@ -75,26 +80,31 @@ def frame1(nodes,elements,constraints,chIII_1,q0,q1,q2,q3,q4,q5,loads,distribute
  return N1,V1,M1,RD   
 
 def dead_load(chIII_1,chIII_2,chII_1,chII_2,hangarf):
- ba = pd.read_excel(hangarf,sheet_name="building attributes")
+ ba = hangarf["building_attributes"] 
+ ba["Lx_m"] = ba["Lx_m"].astype(float)
  Lx=ba["Lx_m"].iloc[0]
+ ba["Ly_m"] = ba["Ly_m"].astype(float)
  Ly=ba["Ly_m"].iloc[0]
  l=Lx/4
  t=Ly/4
 #distributed load daN/m
 #rafter 
- Trafter = pd.read_excel(chIII_1,sheet_name="Ttrafter")
+ Trafter = chIII_1["Trafter"] 
+ Trafter["P"] = Trafter["P"].astype(float)
  q_rafter = Trafter["P"].iloc[0]#rafter daN/m
 #purlin
- Tpurlin = pd.read_excel(chII_1,sheet_name="Tpanne")
+ Tpurlin = chII_1["Tpurlin"] 
  if Lx==16 or Lx==18:
   n_purlin=14
  elif Lx==20 or Lx==24:
   n_purlin=18
  else: raise ValueError("this hangar front doesn't exist in our current variantes")
+ Tpurlin["P"] = Tpurlin["P"].astype(float)
  lm_purlin = Tpurlin["P"].iloc[0]#purlin daN/m
  q_purlin=lm_purlin*n_purlin*t/Lx
 #diagonals
- Tdiagonal = pd.read_excel(chIII_1,sheet_name="Tdiagonal")
+ Tdiagonal = chIII_1["Tdiagonal"] 
+ Tdiagonal["P"] = Tdiagonal["P"].astype(float)
  ml_diagonal = Tdiagonal["P"].iloc[0] * 2 #diagonal daN/m do not forget there are two corners forming one diagonal
  n_diagonal=8
  lenght_diagonal=(l**2+t**2)**0.5
@@ -105,18 +115,22 @@ def dead_load(chIII_1,chIII_2,chII_1,chII_2,hangarf):
 #sum
  distributed_load=(q_rafter+q_purlin+q_diagonal+q_covering)*1.1
 #nodal load on the two columns daN
-#colomn
- Tcolumn = pd.read_excel(chIII_1,sheet_name="Tcolumn")
+#column
+ Tcolumn = chIII_1["Tcolumn"] 
+ Tcolumn["P"] = Tcolumn["P"].astype(float)
  lm_column = Tcolumn["P"].iloc[0]#column daN/m linear mass
+ ba["floor_height_m"] = ba["floor_height_m"].astype(float)
  hc=ba["floor_height_m"].iloc[0]
  q_column=lm_column*hc #daN
 #girt
- Tgirt = pd.read_excel(chII_2,sheet_name="Tgirt")
+ Tgirt = chII_2["Tgirt"] 
+ Tgirt["P"] = Tgirt["P"].astype(float)
  lm_girt = Tgirt["P"].iloc[0]#girt daN/m linear mass
  n_girt=6
  q_girt=lm_girt*n_girt*t 
 #eave purlin
- TEave_purlin = pd.read_excel(chIII_2,sheet_name="TEave_purlin")
+ TEave_purlin = chIII_2["TEave_purlin"] 
+ TEave_purlin["P"] = TEave_purlin["P"].astype(float)
  lm_Eave_purlin = TEave_purlin["P"].iloc[0]#Eave_purlin daN/m linear mass
  q_Eave_purlin=lm_Eave_purlin*t  
 #cladding
@@ -135,9 +149,11 @@ def dead_load(chIII_1,chIII_2,chII_1,chII_2,hangarf):
  return distributed_load,nodal_load,Tdistributed_load,Tnodal_load
 
 def snow_load(hangarf):
- ba = pd.read_excel(hangarf,sheet_name="building attributes")
- geo = pd.read_excel(hangarf,sheet_name="geography attributes")
+ ba = hangarf["building_attributes"] 
+ geo = hangarf["geography_attributes"] 
+ ba["Lx_m"] = ba["Lx_m"].astype(float)
  Lx=ba["Lx_m"].iloc[0]
+ ba["Ly_m"] = ba["Ly_m"].astype(float)
  Ly=ba["Ly_m"].iloc[0]
  qs=snow(geo, ba, Lx, Lx, Ly) #daN/m2 here we take direction 2 to the front b=Lx to get the total load
  t=Ly/4
@@ -160,8 +176,13 @@ def cpe_from_s(epf10,epf1,s):
  else: raise ValueError("s needs to be positive")
  return epf
 
-def frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2):
- ba = pd.read_excel(hangarf,sheet_name="building attributes")
+def frame(hangarf,chI,chII_1,chII_2,chIII_1,chIII_2):
+
+ ba = hangarf["building_attributes"] 
+ numeric_cols = ["floor_height_m", "hp_m", "Lx_m", "Ly_m", "slope_angle_deg"]
+ for col in numeric_cols:
+    ba[col] = pd.to_numeric(ba[col])
+
  floor_height=ba["floor_height_m"].iloc[0]
  hp=ba["hp_m"].iloc[0]
  L=ba["Lx_m"].iloc[0]
@@ -186,11 +207,12 @@ def frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2):
 #wind1
 #for wind1 case we will have additional two nodes intermediate
  t=T/4
- Tin1 = pd.read_excel(chI, sheet_name="T1")
- Tin2 = pd.read_excel(chI, sheet_name="T2")
- Tin3 = pd.read_excel(chI, sheet_name="T3")
- Tin6 = pd.read_excel(chI, sheet_name="T6")
- Tin8 = pd.read_excel(chI, sheet_name="T8")
+ Tin1 = chI["T1"] 
+ Tin2 = chI["T2"] 
+ Tin3 = chI["T3"] 
+ Tin6 = chI["T6"] 
+ Tin8 = chI["T8"] 
+ Tin1["e_m"] = Tin1["e_m"].astype(float)
  e1 = Tin1["e_m"].iloc[0]          
  a=hp/(L/2)
  hfg=(e1/10)*a+hp
@@ -198,7 +220,9 @@ def frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2):
  nodes1=[[0,0],[0,floor_height],[e1/10,hfg],[L/2,floor_height+hp],[L/2+e1/10,hI],[L,floor_height],[L,0]]
  elements1=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]]
  constraints1 = [0,1,2,  3*6, 3*6+1, 3*6+2]   # all DOFs at node 0 and node 4 are fixed on the gound
+ Tin2["qpze_N_m_2"] = Tin2["qpze_N_m_2"].astype(float)
  qpze = Tin2["qpze_N_m_2"].iloc[0]  # table2{1,3}
+ Tin3["ipf1"] = Tin3["ipf1"].astype(float)
  ipf1 = Tin3["ipf1"].iloc[0]         # table3{1,3}
  wi1=qpze*ipf1
  weD=qpze*0.8
@@ -229,7 +253,9 @@ def frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2):
  Nw1,Vw1,Mw1,RDw1=frame1(nodes1,elements1,constraints1,chIII_1,qv1D,-qv1FG,-qv1H,-qv1J,-qv1I,-qv1E,
   nodal_loadss1,"local_wind1")
 #wind2
+ Tin6["e_m"] = Tin6["e_m"].astype(float)
  e2 = Tin6["e_m"].iloc[0]          
+ Tin8["ipf1"] = Tin8["ipf1"].astype(float)
  ipf2 = Tin8["ipf1"].iloc[0]
  wi2=qpze*ipf2
  weA=qpze*(-1)

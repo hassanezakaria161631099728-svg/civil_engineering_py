@@ -4,7 +4,11 @@ from .utils import buckling1,beam4,lateral_torsional_buckling,buckling2,find_epf
 from.FEM import FEM2D,create_X_horizontal_truss,plot_truss,animate_truss_deformation
 def roof_bracing(hangarf, beamT, chI, chII_1):
     # Read building attributes
-    ba = pd.read_excel(hangarf, sheet_name='building attributes')
+    ba = hangarf["building_attributes"] 
+    numeric_cols_ba = ["Lx_m", "Ly_m", "floor_height_m", "n_floors","hp_m"]
+    for col in numeric_cols_ba:
+        ba[col] = pd.to_numeric(ba[col], errors="coerce")
+
     Lx = ba["Lx_m"].iloc[0]
     Ly = ba["Ly_m"].iloc[0]
     floor_height=ba["floor_height_m"].iloc[0]
@@ -19,28 +23,35 @@ def roof_bracing(hangarf, beamT, chI, chII_1):
     si, sf, ha, hb, sI, sII, sIII = roof_bracing2(s1, s2, s3, dI, dII, ba, h)
     T1, qw1 = roof_bracing3(si, sf, sI, sII, sIII, di, df, dI, dII, dIII, chI)
     T2, qw2 = roof_bracing4(di, df, si, sf, chI)
-    portal_frame = pd.read_excel(hangarf,sheet_name="portal frame")
+    portal_frame = hangarf["portal_frame"] 
+#    portal_frame = pd.read_excel(hangarf,sheet_name="portal frame")
+   #Fwi1, Fwi2, h, ipe_class, heb_class, iymin, Ld
     Fwi1, Fwi2, hi, ipe_class, heb_class, iymin, Ld = \
     roof_bracing5(qw1, qw2, h, portal_frame, l, t)
     # Beam data
-    TIPE = pd.read_excel(beamT, sheet_name='IPE')
-    THEB = pd.read_excel(beamT, sheet_name='HEB')
-    Tcor = pd.read_excel(beamT, sheet_name='corniere')
-    Trafter = beam4(ipe_class, 1, TIPE)
-    Tcolumn  = beam4(heb_class, 1, THEB)
-    Tdiagonal = beam4(iymin, 12, Tcor)
+    TIPE = beamT["IPE"] 
+    THEB = beamT["HEB"] 
+    Tcor = beamT["corner"] 
+    #beam4(minval,column_title,T):
+    Trafter = beam4(ipe_class, "IPE", TIPE)
+    Tcolumn  = beam4(heb_class, "HEB", THEB)
+    Tdiagonal = beam4(iymin, "i", Tcor)
     T6, q, dF1, dF2 = equivalent_imperfection_load(Trafter, Lx, 'rafter')
     T7 = pd.DataFrame({'h1':[h1], 'h2':[h2], 'ha':[ha], 'hb':[hb], 'q':[q]})
     T8, T9, T10, p1, d1, d2, R1, R2, FV1, FV2 = \
     roof_bracing6(Fwi1, Fwi2,hi, dF1, dF2, qw1, qw2, Lx, Ly, Trafter, Tcolumn, Tdiagonal)
-    Tin1    = pd.read_excel(chII_1, sheet_name='T9')
-    Tpurlin = pd.read_excel(chII_1, sheet_name='Tpurlin')
+    Tin1 = chII_1["T9"] 
+    #Tin1    = pd.read_excel(chII_1, sheet_name='T9')
+    Tpurlin = chII_1["Tpurlin"] 
+    #Tpurlin = pd.read_excel(chII_1, sheet_name='Tpurlin')
     # Vérification des pannes (compression)
     Nsd = min(p1) * -100
     fy  = 2350
     Lfz,laz, lazb, alphaz, phiz, xiz,_,_ = buckling1(t, 'z', Tpurlin, 'double fixed', 1, 1)
     uz, kz = buckling2(lazb, Tpurlin, Nsd, xiz, fy, 'z')
+    Tin1["Mysdn"] = Tin1["Mysdn"].astype(float)
     Mysdn   = Tin1["Mysdn"].iloc[0]
+    Tin1["Mzscorr"] = Tin1["Mzscorr"].astype(float)
     Mzscorr = Tin1["Mzscorr"].iloc[0]
 #    ult, klt = dever(lazb, Nsd, xiz, fy, Tpurlin)
     ult, klt,_,_, zg, k, c1, c2, lalt, laltb,_, philt, xlt, r=\
@@ -66,7 +77,7 @@ def roof_bracing(hangarf, beamT, chI, chII_1):
        'Lf':[Lf], 'lambda':[lambda_], 'lambdabar':[lambdabar], 'alpha':[alpha], 'phi':[phi], 'Xi':[Xi],
         'Nbrd':[Nbrd], 'Ntrd':[Ntrd], 'Ncsd':[Ncsd], 'Ntsd':[Ntsd], 'R1':[R11], 'R2':[R21]
                        })
-    return T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13,FV1,FV2
+    return T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13,FV1,FV2,Ld
 
 def roof_bracing1(ba, e, h3):
     """
@@ -211,9 +222,13 @@ def roof_bracing32(sa, sb, sc, ba, bb, bc, chI):
         epfa, epfb, epfc, qwa, qwb, qwc, qw : numpy arrays (length 5)
     """
     # read Excel sheets
-    Tin1  = pd.read_excel(chI, sheet_name='T2')
-    Tin2  = pd.read_excel(chI, sheet_name='T3')
+    Tin1 = chI["T2"] 
+    #Tin1  = pd.read_excel(chI, sheet_name='T2')
+    Tin2 = chI["T3"] 
+    #Tin2  = pd.read_excel(chI, sheet_name='T3')
+    Tin1["qpze_N_m_2"] = Tin1["qpze_N_m_2"].astype(float)
     qpze1 = Tin1["qpze_N_m_2"].iloc[0]   
+    Tin2["wi1"] = Tin2["wi1"].astype(float)
     wi1   = Tin2["wi1"].iloc[0]   
     # coefficients
     epf1a  = np.array([-1.3] * 5)
@@ -252,10 +267,16 @@ def roof_bracing4(di, df, si, sf, chI):
         qw : numpy array (length 5)
     """
     # read Excel sheets
-    Tin  = pd.read_excel(chI, sheet_name='T7')
-    Tin2  = pd.read_excel(chI, sheet_name='T8')
-    qpze1 = Tin.iloc[0, 2]   # in{1,3}
-    wi1   = Tin2.iloc[0, 4]   # in2{1,5}
+    Tin1 = chI["T7"] 
+    #Tin  = pd.read_excel(chI, sheet_name='T7')
+    Tin2 = chI["T8"] 
+    #Tin2  = pd.read_excel(chI, sheet_name='T8')
+    Tin1["qpze_N_m_2"] = Tin1["qpze_N_m_2"].astype(float)
+    qpze1 = Tin1["qpze_N_m_2"].iloc[0]   
+#    qpze1 = Tin.iloc[0, 2]   # in{1,3}
+    Tin2["wi1"] = Tin2["wi1"].astype(float)
+    wi1   = Tin2["wi1"].iloc[0]   
+    #wi1   = Tin2.iloc[0, 4]   # in2{1,5}
     # initialize arrays
     s  = np.zeros(5)
     b  = np.zeros(5)
@@ -328,6 +349,9 @@ def get_beam_class(portal_frame, L_value=None, h_value=None):
     heb_class = None
     IPE_name = None
     HEB_name = None
+    numeric_cols = ["L", "IPE", "h", "HEB"]
+    for col in numeric_cols:
+        portal_frame[col] = pd.to_numeric(portal_frame[col])
     # Lookup IPE for given L
     if L_value is not None:
         row = portal_frame.loc[portal_frame["L"] == L_value]
@@ -378,6 +402,9 @@ def roof_bracing6(Fwi1, Fwi2, hi, dF1, dF2, qw1, qw2, Lx, Ly, Trafter, Tpurlin, 
     plot_truss(nodes, elements, loads1, constraints,load_scale=10e-5)
     plot_truss(nodes, elements, loads2, constraints,load_scale=10e-5)     
     # Areas *1e-4 convert cm2 to m2
+    Trafter["A"] = Trafter["A"].astype(float)
+    Tpurlin["A"] = Tpurlin["A"].astype(float)
+    Tdiagonal["A"] = Tdiagonal["A"].astype(float)
     A_h = Trafter["A"].iloc[0] * 1e-4   # horizontal rafter
     A_v = Tpurlin["A"].iloc[0] * 1e-4    # vertical purlins
     A_d = Tdiagonal["A"].iloc[0] * 1e-4   # diagonal 
@@ -417,7 +444,9 @@ def equivalent_imperfection_load(T, L, cas):
     fy = 2350  # yield strength (same as MATLAB)
     if cas == 'rafter':
         # Extract values (adjust indices to match MATLAB’s 1-based indexing)
+        T["h"] = T["h"].astype(float)
         h = T["h"].iloc[0] / 100.0
+        T["wply"] = T["wply"].astype(float)
         wply = T["wply"].iloc[0]  # column 18 in MATLAB → index 17 in Python
         Mcrd = wply * fy / 1.1 * 10**-4  # [kN·m]
         N = Mcrd / h
@@ -450,12 +479,16 @@ def equivalent_imperfection_load(T, L, cas):
 
 def wall_bracing(beamT, chIII_1, hangarf):
     # Read Excel sheets
-    ba = pd.read_excel(hangarf, sheet_name='building attributes')
-    Tin1 = pd.read_excel(chIII_1, sheet_name='Tcolumn')
-    THEA = pd.read_excel(beamT, sheet_name='HEA')
-    Tin2 = pd.read_excel(chIII_1, sheet_name='T13')
-    Tcorner = pd.read_excel(beamT, sheet_name='corniere')
+    ba = hangarf["building_attributes"] 
+    Tin1 = chIII_1["Tcolumn"] 
+    THEA = beamT["HEA"] 
+    Tin2 = chIII_1["T13"] 
+    Tcorner = beamT["corner"] 
     # Extract key values
+    numeric_cols = ["floor_height_m", "n_floors", "hp_m", "Ly_m"]
+    for col in numeric_cols:
+        ba[col] = pd.to_numeric(ba[col])
+
     floor_height=ba["floor_height_m"].iloc[0]
     n_floors=ba["n_floors"].iloc[0]
     hp=ba["hp_m"].iloc[0] 
@@ -468,11 +501,11 @@ def wall_bracing(beamT, chIII_1, hangarf):
     # Eave purlin class determination
     t = Ly / 4
     izmin = t / 300  # slenderness check
-    TEave_purlin = beam4(izmin, 16, THEA)  # HEA beam
+    TEave_purlin = beam4(izmin, "Iy", THEA)  # HEA beam
     # Diagonal braces class determination
     L = np.sqrt((h - 2)**2 + (t / 2)**2)
     iymin = L / 3
-    Tdiagonal = beam4(iymin, 12, Tcorner)  # corniere
+    Tdiagonal = beam4(iymin, "i", Tcorner)  # corniere
     # Vertical beam (column) data again
     Tcolumn=Tin1 
     #Tcolumn = pd.read_excel(chIII_1, sheet_name='Tcolumn')
@@ -489,7 +522,9 @@ def wall_bracing(beamT, chIII_1, hangarf):
         [0, 2], [1, 4],  # verticals
         [0, 3], [3, 1]   # diagonals
     ])
+    Tin2["R1"] = Tin2["R1"].astype(float)
     R1 = Tin2["R1"].iloc[0]
+    Tin2["R2"] = Tin2["R2"].astype(float)
     R2 = Tin2["R2"].iloc[0]
     loads1 = np.array([
         [0, -1 * df2],
@@ -503,6 +538,9 @@ def wall_bracing(beamT, chIII_1, hangarf):
     plot_truss(nodes,elements,loads1,constraints,load_scale=0.01)
     plot_truss(nodes,elements,loads2,constraints,load_scale=0.01)
     # Cross-sectional areas (m²)
+    TEave_purlin["A"] = TEave_purlin["A"].astype(float)
+    Tcolumn["A"] = Tcolumn["A"].astype(float)
+    Tdiagonal["A"] = Tdiagonal["A"].astype(float)
     A_h = TEave_purlin["A"].iloc[0] * 1e-4 #horizontal eave purlin
     A_v = Tcolumn["A"].iloc[0] * 1e-4 # vertical column
     A_d = Tdiagonal["A"].iloc[0] * 1e-4 #diagonal
