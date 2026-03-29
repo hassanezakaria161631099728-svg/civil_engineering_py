@@ -1,4 +1,4 @@
-wind zones
+wind_zones
 ----------------------------------------------------------------------
        zones    qref_N_m2   qtemp_N_m2
            I          375          270
@@ -6,7 +6,7 @@ wind zones
          III          500          360
           IV          575          415
 
-ground categories
+ground_categories
 ----------------------------------------------------------------------
 ground_categories           KT         z0_m       zmin_m      epsilon
                 0        0.156        0.003            1         0.38

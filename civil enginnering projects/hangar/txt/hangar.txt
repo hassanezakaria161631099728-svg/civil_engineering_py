@@ -1,14 +1,14 @@
-geography attributes
+geography_attributes
 ----------------------------------------------------------------------
    wind_zone  ground_type    snow_zone     altitude
          III          III            B          240
 
-building attributes
+building_attributes
 ----------------------------------------------------------------------
  floor_height_m         hp_m     n_floors         Lx_m         Ly_m  slope_angle_deg           bt          bt2
               7            2            1           18           16        12.528808       hangar        gable
 
-portal frame
+portal_frame
 ----------------------------------------------------------------------
            L          IPE            h          HEB
           16          360          8.0        260.0
