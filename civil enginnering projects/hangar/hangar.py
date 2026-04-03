@@ -1,102 +1,129 @@
-
-
-
-#%% ---- Chapter III-1 ----
-import os
-from modules.truss import roof_bracing
-from modules.expxlsx import expxlsx
-# Directory where hangar.py lives
-baseDir = os.path.dirname(__file__)
-# Excel folder is inside this directory
-excelDir = os.path.join(baseDir, "excel")
-beamT = os.path.join(excelDir, "tableaudesprofiles.xlsx")
-chI = os.path.join(excelDir, "chapterI.xlsx")
-hangarf = os.path.join(excelDir, "hangar.xlsx")
-chII_1 = os.path.join(excelDir, "chapterII-1.xlsx")
-T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13,FV1,FV2=\
-roof_bracing(hangarf, beamT, chI, chII_1)
-# If you want to export:
-#Tables = [T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13]
-#sheetNames = ["T1","T2","Ttrafter","Tcolumn","Tdiagonal","T6","T7","T8","T9","T10","T11","T12","T13"]
-#expxlsx(Tables, os.path.join(excelDir,"chapterIII-1.xlsx"), sheetNames)
-#%% ---- Chapter III-2 ----
-import os
-from modules.truss import wall_bracing
-from modules.expxlsx import expxlsx
-# Directory where hangar.py lives
-baseDir = os.path.dirname(__file__)
-# Excel folder is inside this directory
-excelDir = os.path.join(baseDir, "excel")
-beamT = os.path.join(excelDir, "tableaudesprofiles.xlsx")
-chIII_1 = os.path.join(excelDir, "chapterIII-1.xlsx")
-hangarf = os.path.join(excelDir, "hangar.xlsx")
-T1, T2, TEave_purlin, Tdiagonal, T3, T4, T5 = wall_bracing(beamT, chIII_1, hangarf)
-#Tables = [T1, T2, TEave_purlin, Tdiagonal, T3, T4, T5]
-#sheetNames = ["T1", "T2", "TEave_purlin", "Tdiagonal", "T3", "T4", "T5"]
-#expxlsx(Tables, os.path.join(excelDir, "chapterIII-2.xlsx"), sheetNames)
-
-
-# %% chapter IV frame 
+import sys
 import pandas as pd
-import numpy as np
+import os
+from modules.wind.wind import wind,dimensions
+from modules.io import exptxt,read_tables_txt3
+from modules.purlin import purlin
+from modules.girt_internal_column import girt,internal_column
+from modules.truss import roof_bracing,wall_bracing
 from modules.frame import frame 
-from modules.expxlsx import expxlsx
-# Directory where hangar.py lives
-baseDir = os.path.dirname(__file__)
-# Excel folder is inside this directory
-excelDir = os.path.join(baseDir, "excel")
-hangarf = os.path.join(excelDir, "hangar.xlsx")
-chI = os.path.join(excelDir, "chapterI.xlsx")
-chII_1 = os.path.join(excelDir, "chapterII-1.xlsx")
-chII_2 = os.path.join(excelDir, "chapterII-2.xlsx")
-chIII_1 = os.path.join(excelDir, "chapterIII-1.xlsx")
-chIII_2 = os.path.join(excelDir, "chapterIII-2.xlsx")
-E=210e6 #Kpa
-#frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2):
-(Tdistributed_loadG,Tnodal_loadG,T_axial_forces,T_shear_forces,
-T_bending_moments,T_displacements_reactions)=frame(hangarf,chI,chII_1,chIII_1,chIII_2,chII_2)
-Tables = [Tdistributed_loadG,Tnodal_loadG,T_axial_forces,T_shear_forces,T_bending_moments,T_displacements_reactions]
-sheetNames = ["Tdistributed_loadG","Tnodal_loadG","T_axial_forces","T_shear_forces","T_bending_moments","T_displacements_reactions"]
-expxlsx(Tables, os.path.join(excelDir, "chapterIV-1-beta.xlsx"), sheetNames)
-#%%
-import pandas as pd
-import numpy as np
-import os
-from modules.FEM import plot_frame,FEM2D_frame
-from modules.expxlsx import expxlsx
-nodes=[[0,0],[0,7],[9,9],[18,7],[18,0]]
-elements=[[0,1],[1,2],[2,3],[3,4]]
-constraints = [0,1,2,  4*3, 4*3+1, 4*3+2]   # all DOFs at node 0 and node 4 are fixed on the gound
-#frame properties 
-A_rafter = 84.5*10e-4
-I_rafter = 23130*10e-8
-A_column = 131.4*10e-4
-I_column = 19270*10e-8
-E=210e6
-elem_props = [
-# element 0: left column
-  {'type':'beam','A':A_column,'I':I_column,'E':E,'w':0},  #KN/m
-#element 1: left rafter
-  {'type':'beam','A':A_rafter,'I':I_rafter,'E':E,'w':195},  #KN/m
-#element 2: right rafter
-  {'type':'beam','A':A_rafter,'I':I_rafter,'E':E,'w':195},  #KN/m
-#element 3: right column
-  {'type':'beam','A':A_column,'I':I_column,'E':E,'w':0},  #KN/m
-]
-#loads
-loads = [[4,-1387.1],[10,-1387.1]] 
-#plot_frame(nodes, elements, elem_props, loads, constraints, scale_load):
-plot_frame(nodes, elements, elem_props, loads ,constraints, load_scale=0.01)
-u, R, N, V, M = FEM2D_frame(
-nodes, elements, elem_props, loads, constraints, default_E=210e6)
-with open("gable_roof_frame_positive2.txt", "w") as f:
-    f.write("=== DISPLACEMENTS (u) ===\n")
-    f.write(str(u))
-    f.write("\n\n=== REACTIONS (R) ===\n")
-    f.write(str(R))
-    f.write("\n\n=== AXIAL FORCES (N) ===\n")
-    f.write(str(N))
-    f.write("\n\n=== SHEAR FORCES (V) ===\n")
-    f.write(str(V))
-    f.write("\n\n=== MOMENTS (M) ===\n")
-    f.write(str(M))
+
+
+def chapterI():
+ print("Running case 1: chapterI")
+ # your code here
+ eurocode = read_tables_txt3("hangar/txt/eurocode.txt")
+ chI = read_tables_txt3("hangar/txt/chapterI.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ ba = hangar["building_attributes"]
+ Lx = ba["Lx_m"].iloc[0]
+ Ly = ba["Ly_m"].iloc[0]
+ direction1='wind1'
+ direction2='wind2'
+ b,d=dimensions(Lx,Ly,direction1)
+ bt=ba["bt"].iloc[0]
+ bt2=ba["bt2"].iloc[0]
+ geo = hangar["geography_attributes"]
+ wzs = eurocode["wind_zones"]
+ gcs = eurocode["ground_categories"]
+ T1,T2,T3,T4,T5,Troof1,Twall=wind(ba,Lx,Ly,direction1,geo,wzs,gcs)
+ T6,T7,T8,T9,T10,Troof2,_=wind(ba,Lx,Ly,direction2,geo,wzs,gcs)
+ Tables = [T1,T2,T3,T4,T5,Troof1,Twall,T6,T7,T8,T9,T10,Troof2]
+ Names = ["T1", "T2", "T3", "T4", "T5", "Troof1", "Twall",
+              "T6", "T7", "T8", "T9", "T10", "Troof2"]
+ exptxt(Tables, Names, "hangar/txt/chapterI.txt", 12)
+
+def chapterII_1():
+ print("Running case 1: chapterII_1")
+ # your code here
+ steel = read_tables_txt3("hangar/txt/steel.txt")
+ chI = read_tables_txt3("hangar/txt/chapterI.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ ba = hangar["building_attributes"]
+ row = ba.squeeze()
+ bt2 = row["bt2"]   
+ Lx = row["Lx_m"]   
+ Ly = row["Ly_m"]   
+ b1=Ly
+ b2=Lx
+ Tpurlin,T2,loads,acp,combdel,combV,combM,T8,T9,T10=purlin(b1,b2,hangar,chI,steel)
+ Tables = [Tpurlin,T2,loads,acp,combdel,combV,combM,T8,T9,T10]
+ Names = ["Tpurlin","T2","loads","acp","combdel","combV","combM","T8","T9","T10"]
+ exptxt(Tables, Names, "hangar/txt/chapterII-1.txt",15)
+
+def chapterII_2():
+ print("Running case 1: chapterII_2")
+ # your code here
+ steel = read_tables_txt3("hangar/txt/steel.txt") # beam tables
+ chI = read_tables_txt3("hangar/txt/chapterI.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ Tgirt, T2, T3, T4=girt(hangar, chI, steel)
+ T5, Tinter_column, T6, T7, T8, T9 = internal_column(Tgirt, hangar, chI, steel)
+ Tables = [Tgirt, T2, T3, T4, T5, Tinter_column, T6, T7, T8, T9]
+ Names = ["Tgirt", "T2", "T3", "T4", "T5", "Tinter_column", "T6", "T7", "T8", "T9"]
+ exptxt(Tables, Names, "hangar/txt/chapterII-2.txt",12)
+
+def chapterIII_1():
+ print("Running case 1: chapterIII_1")
+ # your code here
+ beamT = read_tables_txt3("hangar/txt/steel.txt") # beam tables
+ chI = read_tables_txt3("hangar/txt/chapterI.txt")
+ chII_1 = read_tables_txt3("hangar/txt/chapterII-1.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13,FV1,FV2,Ld=\
+ roof_bracing(hangar, beamT, chI, chII_1)
+ # If you want to export:
+ Tables = [T1, T2, Trafter, Tcolumn, Tdiagonal, T6, T7, T8, T9, T10, T11, T12, T13]
+ Names = ["T1","T2","Trafter","Tcolumn","Tdiagonal","T6","T7","T8","T9","T10","T11","T12","T13"]
+ #expxlsx(Tables, os.path.join(excelDir,"chapterIII-1.xlsx"), sheetNames)
+ exptxt(Tables, Names, "hangar/txt/chapterIII-1.txt",12)
+
+def chapterIII_2():
+ print("Running case 1: chapterIII_2")
+ # your code here
+ beamT = read_tables_txt3("hangar/txt/steel.txt") # beam tables
+ chIII_1 = read_tables_txt3("hangar/txt/chapterIII-1.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ T1, T2, TEave_purlin, Tdiagonal, T3, T4, T5 = wall_bracing(beamT, chIII_1, hangar)
+ Tables = [T1, T2, TEave_purlin, Tdiagonal, T3, T4, T5]
+ Names = ["T1", "T2", "TEave_purlin", "Tdiagonal", "T3", "T4", "T5"]
+ exptxt(Tables, Names, "hangar/txt/chapterIII-2.txt",12)
+
+def chapterIV_1():
+ print("Running case 1: chapterIV_1")
+ # your code here
+ beamT = read_tables_txt3("hangar/txt/steel.txt") # beam tables
+ chI = read_tables_txt3("hangar/txt/chapterI.txt")
+ chII_1 = read_tables_txt3("hangar/txt/chapterII-1.txt")
+ chII_2 = read_tables_txt3("hangar/txt/chapterII-2.txt")
+ chIII_1 = read_tables_txt3("hangar/txt/chapterIII-1.txt")
+ chIII_2 = read_tables_txt3("hangar/txt/chapterIII-2.txt")
+ hangar = read_tables_txt3("hangar/txt/hangar.txt")
+ E=210e6 #Kpa
+ (Tdistributed_loadG,Tnodal_loadG,T_axial_forces,T_shear_forces,
+ T_bending_moments,T_displacements_reactions)=frame(hangar,chI,chII_1,chII_2,chIII_1,chIII_2)
+ Tables = [Tdistributed_loadG,Tnodal_loadG,T_axial_forces,T_shear_forces,T_bending_moments,T_displacements_reactions]
+ Names = ["Tdistributed_loadG","Tnodal_loadG","T_axial_forces","T_shear_forces","T_bending_moments","T_displacements_reactions"]
+ exptxt(Tables, Names, "hangar/txt/chapterIV-1.txt",12)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Please provide a case: chapterI, chapterII_1, chapterII_2, chapterIII_1, chapterIII_2, chapterIV_1")
+    else:
+        command = sys.argv[1]
+
+        if command == "chapterI":
+            chapterI()
+        elif command == "chapterII_1":
+            chapterII_1()
+        elif command == "chapterII_2":
+            chapterII_2()
+        elif command == "chapterIII_1":
+            chapterIII_1()
+        elif command == "chapterIII_2":
+            chapterIII_2()
+        elif command == "chapterIV_1":
+            chapterIV_1()
+        else:
+            print("Unknown case")
