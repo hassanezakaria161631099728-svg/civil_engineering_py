@@ -1182,7 +1182,7 @@ def generate_elements(nx, ny):
 
     return elements
 
-def plot_grid(nodes, nx, ny):
+def plot_grid(nodes, nx, ny, folder, filename):
     fig, ax = plt.subplots(figsize=(6, 6))
 
     for node_id, x, y in nodes:
@@ -1208,6 +1208,10 @@ def plot_grid(nodes, nx, ny):
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.grid(True)
+    # Full path
+    filepath = os.path.join(folder, filename)
+    # Save figure
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.show()
 
 def plot_grid_elevation_view(nodes, nx, nz):
