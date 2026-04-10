@@ -73,3 +73,12 @@ def compute_NG(n,GCF,GRT,Smaj):
  NG = 1.1 * (base + i * increment)# cumulative sum handles recursion efficiently
  NG = NG.reshape(-1, 1) 
  return NG
+
+def inertia(t,b):
+ I = t * b**3 / 12
+ return I   
+
+def factor(h,E,I):
+ f= h**3 / (6 * E * I) #m/KN
+
+ return f
