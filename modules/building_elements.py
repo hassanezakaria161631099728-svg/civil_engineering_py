@@ -110,13 +110,40 @@ def inertia_composite(a, b, xg, yg):
 def shape_geometry_attributes(a, b, xg, yg):
  xgg, ygg,  A_total, Ix_total, Iy_total, A, Ix, Iy ,ex, ey, Ix_local, Iy_local =\
   inertia_composite(a, b, xg, yg)
- T_scalar = pd.DataFrame({"A_total": A_total,"xg_global": [xgg],"yg_global": [ygg],
+ T_scalar = pd.DataFrame({"A_total": [A_total],"xg_global": [xgg],"yg_global": [ygg],
  "Ix_total": [Ix_total],"Iy_total": [Iy_total]})
 
  T_vec = pd.DataFrame({"A": A.reshape(-1),"ex": ex.reshape(-1),"ey": ey.reshape(-1),
  "Ix_local": Ix_local.reshape(-1),"Iy_local": Iy_local.reshape(-1),"Ix": Ix.reshape(-1),
  "Iy": Iy.reshape(-1)})
  return T_scalar, T_vec
+
+def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
+#X axis
+ Ix_total1 = T_scalar1["Ix_total"].iloc[0]
+ Ix_total2 = T_scalar2["Ix_total"].iloc[0]
+ Ix_total3 = T_scalar3["Ix_total"].iloc[0]
+ Ix_total4 = T_scalar4["Ix_total"].iloc[0]
+ Ix_total5 = T_scalar5["Ix_total"].iloc[0]
+ Ix_total = [Ix_total1, Ix_total2, Ix_total3, Ix_total4, Ix_total5,
+ Ix_total1, Ix_total2, Ix_total3, Ix_total4, Ix_total5]
+
+#Y axis
+ Iy_total1 = T_scalar1["Iy_total"].iloc[0]
+ Iy_total2 = T_scalar2["Iy_total"].iloc[0]
+ Iy_total3 = T_scalar3["Iy_total"].iloc[0]
+ Iy_total4 = T_scalar4["Iy_total"].iloc[0]
+ Iy_total5 = T_scalar5["Iy_total"].iloc[0]
+ Iy_total = [Iy_total1, Iy_total2, Iy_total3, Iy_total4, Iy_total5,
+ Iy_total1, Iy_total2, Iy_total3, Iy_total4, Iy_total5]
+ Ix_scalar,Iy_scalar = np.sum(Ix_total),np.sum(Iy_total)
+
+ RC_walls = ["RC_wall1","RC_wall2","RC_wall3","RC_wall4","RC_wall5",
+ "RC_wall6","RC_wall7","RC_wall8","RC_wall9","RC_wall10"]
+ T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"Ix": Ix_total,"Iy": Iy_total})
+ T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","Ix": [Ix_scalar],"Iy": [Iy_scalar]})
+
+ return T_sectorial, T_sectorial_scalar
 
 def factor(h,E,I):
  f= h**3 / (6 * E * I) #m/KN
