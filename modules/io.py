@@ -209,6 +209,33 @@ def export_matrices_txt(matrices, names, filename):
             f.write(df.to_string())
             f.write("\n\n")
 
+def export_matrices_txt2(matrices, names, filename):
+
+    if len(matrices) != len(names):
+        raise ValueError("Matrices and names must have same length")
+
+    with open(filename, "w") as f:
+
+        for A, name in zip(matrices, names):
+
+            n = len(A)
+
+            rows = [f"floor{i}" for i in range(1, n+1)]
+            cols = [f"mode{i}" for i in range(1, n+1)]
+
+            df = pd.DataFrame(A, index=rows, columns=cols)
+
+            f.write(f"{name}\n")
+            f.write("-"*60 + "\n")
+
+            f.write(df.to_string(
+                float_format="{:.3e}".format,
+                col_space=12,
+                justify="center"
+            ))
+
+            f.write("\n\n")
+
 """
 Python equivalent of expxlsx.m
 expxlsx(Tables, filename, sheetNames)
