@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import pandas as pd
 # stairs
 def stairs(story_height, vertical_step, horizontal_step):
  if 16 <=vertical_step <= 19 and 23 <= horizontal_step <= 32: # cm
@@ -74,9 +75,48 @@ def compute_NG(n,GCF,GRT,Smaj):
  NG = NG.reshape(-1, 1) 
  return NG
 
-def inertia(t,b):
- I = t * b**3 / 12
- return I   
+def inertia_composite(a, b, xg, yg):
+    a = np.array(a)
+    b = np.array(b)
+    xg = np.array(xg)
+    yg = np.array(yg)
+
+    # Areas
+    A = a * b
+
+    # Global centroid
+    A_total = np.sum(A)
+    xgg = np.sum(A * xg) / A_total
+    ygg = np.sum(A * yg) / A_total
+
+    # Distances (broadcasting)
+    ex = xg - xgg
+    ey = yg - ygg
+
+    # Local inertias
+    Ix_local = a * b**3 / 12
+    Iy_local = b * a**3 / 12
+
+    # Global inertias (parallel axis theorem)
+    Ix = Ix_local + A * ey**2
+    Iy = Iy_local + A * ex**2
+
+    # Total inertia
+    Ix_total = np.sum(Ix)
+    Iy_total = np.sum(Iy)
+
+    return xgg, ygg,  A_total, Ix_total, Iy_total, A, Ix, Iy ,ex, ey, Ix_local, Iy_local
+
+def shape_geometry_attributes(a, b, xg, yg):
+ xgg, ygg,  A_total, Ix_total, Iy_total, A, Ix, Iy ,ex, ey, Ix_local, Iy_local =\
+  inertia_composite(a, b, xg, yg)
+ T_scalar = pd.DataFrame({"A_total": A_total,"xg_global": [xgg],"yg_global": [ygg],
+ "Ix_total": [Ix_total],"Iy_total": [Iy_total]})
+
+ T_vec = pd.DataFrame({"A": A.reshape(-1),"ex": ex.reshape(-1),"ey": ey.reshape(-1),
+ "Ix_local": Ix_local.reshape(-1),"Iy_local": Iy_local.reshape(-1),"Ix": Ix.reshape(-1),
+ "Iy": Iy.reshape(-1)})
+ return T_scalar, T_vec
 
 def factor(h,E,I):
  f= h**3 / (6 * E * I) #m/KN
