@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import compute_NQ,compute_NG,RC_column,inertia,factor
+from modules.building_elements import RC_column,shape_geometry_attributes,factor,sectorial
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt
 def dynamic():
  print("Running case 1: dynamic analysis")
@@ -27,10 +27,7 @@ def dynamic():
  E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
  t,by1,by2,by3 = 0.25,3.95,4.4,2.5 
  bx1,bx2,bx3 = 3.05,2.5,3.95
- Iy1,Iy2,Iy3 = inertia(t,by1),inertia(t,by2),inertia(t,by3), 
- Ix1,Ix2,Ix3 = inertia(t,bx1),inertia(t,bx2),inertia(t,bx3), 
-
- IY,IX= 4 * Iy1 + 2 * Iy2 + 4 * Iy3, 4 * Ix1 + 4 * Ix2 + 2* Ix3 #m**4
+ IX,IY = 1,1
  fx = factor(h,E,IY)
  fy = factor(h,E,IX)
 
@@ -47,15 +44,15 @@ def dynamic():
  names = ["SA","M","Sx","Dx","eigen_vectors"]
  float_format = "{:.3f}".format
  export_matrices_txt2(matrices, names, "tall building/dynamic.txt")
- T = pd.DataFrame({"Iy1": [Iy1],"Iy2": [Iy2],"Iy3": [Iy3],"Ix1": [Ix1],"Ix2": [Ix2],"Ix3": [Ix3],
- "IY": IY,"IX": IX,"fx":[fx],"fy":[fy]})
+# T = pd.DataFrame({"Iy1": [Iy1],"Iy2": [Iy2],"Iy3": [Iy3],"Ix1": [Ix1],"Ix2": [Ix2],"Ix3": [Ix3],
+# "IY": IY,"IX": IX,"fx":[fx],"fy":[fy]})
 
 #showing on terminal
 # print(T)  
 # export results
- tables = [T]
- names = ["geometry_attributes"]
- exptxt(tables, names, "tall building/geometry attributes.txt", 12)
+# tables = [T]
+# names = ["geometry_attributes"]
+# exptxt(tables, names, "tall building/geometry attributes.txt", 12)
 
 
 def columns():
@@ -87,6 +84,57 @@ def columns():
  names = ["RC_column"]
  exptxt(tables, names, "tall building/RC column.txt", 12)
 
+def geometry():
+ print("Running case 2: geometry_attributes")
+ # your code here
+ # RC wall 1 
+ a1 = [0.45, 3.95, 0.45, 0.2] 
+ b1 = [0.45, 0.2, 0.45, 2.075] 
+ xg1 = [0.225, 2.425, 4.625, 0.225]
+ yg1 = [0.225, 0.225, 0.225, 1.2625]
+
+ T_scalar1, T_vec1 = shape_geometry_attributes(a1, b1, xg1, yg1)
+
+ # RC wall 2 
+ a2 = [0.45, 3.05, 0.45] 
+ b2 = [0.45, 0.2, 0.45] 
+ xg2 = [0.225, 1.975, 3.725]
+ yg2 = [0.225, 0.225, 0.225]
+
+ T_scalar2, T_vec2 = shape_geometry_attributes(a2, b2, xg2, yg2)
+
+ # RC wall 3 
+ a3 = [0.45, 3.95, 0.45] 
+ b3 = [0.45, 0.2, 0.45] 
+ xg3 = [0.225, 2.425, 4.625]
+ yg3 = [0.225, 0.225, 0.225]
+
+ T_scalar3, T_vec3 = shape_geometry_attributes(a3, b3, xg3, yg3)
+
+ # RC wall 4 
+ a4 = [0.45, 2.075] 
+ b4 = [0.45, 0.2] 
+ xg4 = [0.225, 1.2625]
+ yg4 = [0.225, 0.225]
+
+ T_scalar4, T_vec4 = shape_geometry_attributes(a4, b4, xg4, yg4)
+
+ # RC wall 5 
+ a5 = [4.4] 
+ b5 = [0.2] 
+ xg5 = [2.2]
+ yg5 = [0.2]
+
+ T_scalar5, T_vec5 = shape_geometry_attributes(a5, b5, xg5, yg5)
+ T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5)
+
+# export results
+ tables = [T_vec1,T_scalar1, T_vec2,T_scalar2, T_vec3,T_scalar3, T_vec4,T_scalar4, T_vec5,T_scalar5,
+ T_sectorial, T_sectorial_scalars]
+ names = ["vectors1","scalars1", "vectors2","scalars2", "vectors3","scalars3",
+ "vectors4","scalars4","vectors5","scalars5","sectorial_attributes","sectorial_attributes_scalars"]
+ exptxt(tables, names, "tall building/geometry attributes.txt", 12)
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide a case: case1, case2")
@@ -97,6 +145,8 @@ if __name__ == "__main__":
             dynamic()
         elif command == "columns":
             columns()
+        elif command == "geometry":
+            geometry()
         else:
             print("Unknown case")
             
