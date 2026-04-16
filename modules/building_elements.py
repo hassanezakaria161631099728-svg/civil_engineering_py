@@ -175,7 +175,7 @@ def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
  RC_walls = ["RC_wall1","RC_wall2","RC_wall3","RC_wall4","RC_wall5","RC_wall6","RC_wall7","RC_wall8",
  "RC_wall9","RC_wall10","RC_wall11","RC_wall12","RC_wall13","RC_wall14","RC_wall15","RC_wall16"]
  T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"Ix": Ix_total,"Iy": Iy_total,"X": X,"Y": Y,
- "dx": dx,"dy": dy,Iw_vec:"Iw"})
+ "dx": dx,"dy": dy,"Iw":Iw_vec})
  T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","Ix": [Ix_scalar],"Iy": [Iy_scalar],
  "XC": [XC],"YC": [YC],"Iw":Iw_scalar})
 
