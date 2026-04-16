@@ -113,9 +113,8 @@ def shape_geometry_attributes(a, b, xg, yg):
  T_scalar = pd.DataFrame({"A_total": [A_total],"xg_global": [xgg],"yg_global": [ygg],
  "Ix_total": [Ix_total],"Iy_total": [Iy_total]})
 
- T_vec = pd.DataFrame({"A": A.reshape(-1),"ex": ex.reshape(-1),"ey": ey.reshape(-1),
- "Ix_local": Ix_local.reshape(-1),"Iy_local": Iy_local.reshape(-1),"Ix": Ix.reshape(-1),
- "Iy": Iy.reshape(-1)})
+ T_vec = pd.DataFrame({"a": a,"b": b,"A": A,"xg": xg,"yg": yg,"ex": ex,"ey": ey,
+ "Ix_local": Ix_local,"Iy_local": Iy_local,"Ix": Ix,"Iy": Iy})
  return T_scalar, T_vec
 
 def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
@@ -125,8 +124,6 @@ def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
  Ix_total3 = T_scalar3["Ix_total"].iloc[0]
  Ix_total4 = T_scalar4["Ix_total"].iloc[0]
  Ix_total5 = T_scalar5["Ix_total"].iloc[0]
- Ix_total = [Ix_total1, Ix_total2, Ix_total3, Ix_total4, Ix_total5,
- Ix_total1, Ix_total2, Ix_total3, Ix_total4, Ix_total5]
 
 #Y axis
  Iy_total1 = T_scalar1["Iy_total"].iloc[0]
@@ -134,14 +131,53 @@ def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
  Iy_total3 = T_scalar3["Iy_total"].iloc[0]
  Iy_total4 = T_scalar4["Iy_total"].iloc[0]
  Iy_total5 = T_scalar5["Iy_total"].iloc[0]
- Iy_total = [Iy_total1, Iy_total2, Iy_total3, Iy_total4, Iy_total5,
- Iy_total1, Iy_total2, Iy_total3, Iy_total4, Iy_total5]
+ n = 16
+# inertia vectors
+ Ix_total,Iy_total = np.zeros((n)), np.zeros((n))
+ Ix_total[0:4], Iy_total[0:4] = Ix_total1, Iy_total1
+ Ix_total[4:8], Iy_total[4:8] = Ix_total2, Iy_total2
+ Ix_total[8:10], Iy_total[8:10] = Ix_total3, Iy_total3
+ Ix_total[10:14], Iy_total[10:14] = Ix_total4, Iy_total4
+ Ix_total[14:16], Iy_total[14:16] = Ix_total5, Iy_total5
+# centre of mass vectors
+ xg1 = T_scalar1["xg_global"].iloc[0]
+ xg4 = T_scalar1["xg_global"].iloc[0]
+ yg1 = T_scalar1["yg_global"].iloc[0]
+ yg2 = T_scalar1["yg_global"].iloc[0]
+ yg3 = T_scalar1["yg_global"].iloc[0]
+
+ Lx,Ly = 23.05, 19.25
+ X = [xg1, Lx-xg1, xg1, Lx-xg1,            #i=0:4
+ 9.925, Lx-9.925, 9.925, Lx-9.925,         #i=4:8
+ 6.525, Lx-6.525,                          #i=8:10
+ 10.15-xg4,12.9+xg4, 10.15-xg4,12.9+xg4,   #i=10:14
+ 2.425,Lx-2.425                           #i=14:16 
+ ]
+ Y = [yg1, yg1, Ly-yg1, Ly-yg1,            #i=0:4
+ yg2, yg2, Ly-yg2, Ly-yg2,                 #i=4:8
+ 3.5+yg3, 10.9+yg3,                        #i=8:10
+ 8.125,8.125, Ly-8.125,Ly-8.125,           #i=10:14
+ Ly/2,Ly/2                                #i=14:16 
+ ]
+
  Ix_scalar,Iy_scalar = np.sum(Ix_total),np.sum(Iy_total)
 
- RC_walls = ["RC_wall1","RC_wall2","RC_wall3","RC_wall4","RC_wall5",
- "RC_wall6","RC_wall7","RC_wall8","RC_wall9","RC_wall10"]
- T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"Ix": Ix_total,"Iy": Iy_total})
- T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","Ix": [Ix_scalar],"Iy": [Iy_scalar]})
+ #global torsion center
+ XC = np.sum(Ix_total * X) / Ix_scalar
+ YC = np.sum(Iy_total * Y) / Iy_scalar
+ # Distances (broadcasting)
+ dx = X - XC
+ dy = Y - YC
+ # sectorial inertia (parallel axis theorem)
+ Iw_vec = Ix_total * dx**2 + Iy_total * dy**2
+ Iw_scalar = np.sum(Iw_vec)
+
+ RC_walls = ["RC_wall1","RC_wall2","RC_wall3","RC_wall4","RC_wall5","RC_wall6","RC_wall7","RC_wall8",
+ "RC_wall9","RC_wall10","RC_wall11","RC_wall12","RC_wall13","RC_wall14","RC_wall15","RC_wall16"]
+ T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"Ix": Ix_total,"Iy": Iy_total,"X": X,"Y": Y,
+ "dx": dx,"dy": dy,Iw_vec:"Iw"})
+ T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","Ix": [Ix_scalar],"Iy": [Iy_scalar],
+ "XC": [XC],"YC": [YC],"Iw":Iw_scalar})
 
  return T_sectorial, T_sectorial_scalar
 
