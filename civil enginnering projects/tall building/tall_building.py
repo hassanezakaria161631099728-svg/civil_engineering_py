@@ -1,59 +1,9 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import RC_column,shape_geometry_attributes,factor,sectorial,building_masses
+from modules.building_elements import (RC_column,shape_geometry_attributes,sectorial,
+building_masses,dynamic1,dynamic2)
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
-def dynamic():
- print("Running case 1: dynamic analysis")
- # your code here
- n = 9
- M1 = 580.8
- M2 = 575.48
- M3 = 500.37
- M = np.zeros((n+1,n+1))
- for i in range(n-1): M[i,i] = M1 #fill diagonal for i=1 to n-2 
- M[n-1,n-1] = M2 #element (n-1,n-1)
- M[n,n] = M3 #element (n,n)
-
- SA=np.zeros((n+1,n+1))
- for i in range(n+1):
-    for j in range(n+1):
-        if i<j: SA[i,j] = (i+1)**2 * (3*(j+1)-(i+1))
-        elif i==j: SA[i,j] = 2*(i+1)**3
-        else : SA[i,j] = (j+1)**2 * (3*(i+1)-(j+1)) # i>j
-
- h = 3.06 #m
- fc28 = 25 #MPA or MN/m2
- E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
- t,by1,by2,by3 = 0.25,3.95,4.4,2.5 
- bx1,bx2,bx3 = 3.05,2.5,3.95
- IX,IY = 1,1
- fx = factor(h,E,IY)
- fy = factor(h,E,IX)
-
- Sx= fx * SA 
- Dx =  Sx @ M #matrix product
- TSA = matrix_to_table(SA)
- TM = matrix_to_table(M)
- TS = matrix_to_table(Sx)
- TD = matrix_to_table(Dx)
- eigenvalues, eigenvectors = np.linalg.eig(Dx)
- #print(eigenvectors)
- Teigvec = matrix_to_table(eigenvectors) 
- matrices = [TSA,TM,TS,TD,Teigvec]
- names = ["SA","M","Sx","Dx","eigen_vectors"]
- float_format = "{:.3f}".format
- export_matrices_txt2(matrices, names, "tall building/dynamic.txt")
-# T = pd.DataFrame({"Iy1": [Iy1],"Iy2": [Iy2],"Iy3": [Iy3],"Ix1": [Ix1],"Ix2": [Ix2],"Ix3": [Ix3],
-# "IY": IY,"IX": IX,"fx":[fx],"fy":[fy]})
-
-#showing on terminal
-# print(T)  
-# export results
-# tables = [T]
-# names = ["geometry_attributes"]
-# exptxt(tables, names, "tall building/geometry attributes.txt", 12)
-
 
 def columns():
  print("Running case 2: columns analysis")
@@ -166,20 +116,43 @@ def test():
 
  print(Ix_total)
 
+def dynamic():
+ print("Running case 1: dynamic analysis")
+ # your code here
+ n = 9
+ M1, M2, M3 = 710.021, 703.74, 705.94 #masses
+ # SA and mass matrices and Elasticity module
+ SA, M, E, TSA, TM = dynamic1(n,M1,M2,M3)
+ h = 3.24 #m story height
+ Ix, Iy = 97.13, 808.809
+ fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
+ fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
+ names = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy"]
+ matrices = [TSA, TM, TSx, TDx, Teigen_vectors, TSy, TDy]
+# float_format = "{:.3f}".format
+ export_matrices_txt2(matrices, names, "tall building/dynamic.txt")
+ T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,
+ "periods_x_s": periods_x,"periods_y_s": periods_y})
+ T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy]})
+# export results
+ tables = [T,T2]
+ names = ["periods_secondes","scalars"]
+ exptxt(tables, names, "tall building/dynamic2.txt", 12)
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide a case: dynamic, columns,geometry,test")
     else:
         command = sys.argv[1]
 
-        if command == "dynamic":
-            dynamic()
-        elif command == "columns":
+        if command == "columns":
             columns()
         elif command == "geometry":
             geometry()
         elif command == "masses":
             masses()
+        elif command == "dynamic":
+            dynamic()
         elif command == "test":
             test()
         else:
