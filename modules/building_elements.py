@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
+from modules.io import matrix_to_table
 # stairs
 def stairs(story_height, vertical_step, horizontal_step):
  if 16 <=vertical_step <= 19 and 23 <= horizontal_step <= 32: # cm
@@ -208,7 +209,33 @@ def building_masses(geometry,Lx,Ly,G_RTB,h_story,h_beam,a_RC_column,n_RC_columns
  "m_tonnes": [m_RC_columns]})
  return T_RTB,T_RC_walls,T_RC_columns
 
-def factor(h,E,I):
- f= h**3 / (6 * E * I) #m/KN
+def dynamic1(n,M1,M2,M3):
+ #mass matrix
+ M = np.zeros((n+1,n+1))
+ for i in range(n-1): M[i,i] = M1 #fill diagonal for i=1 to n-2 
+ M[n-1,n-1] = M2 #element (n-1,n-1)
+ M[n,n] = M3 #element (n,n)
+ # SA matrix
+ SA=np.zeros((n+1,n+1))
+ for i in range(n+1):
+    for j in range(n+1):
+        if i<j: SA[i,j] = (i+1)**2 * (3*(j+1)-(i+1))
+        elif i==j: SA[i,j] = 2*(i+1)**3
+        else : SA[i,j] = (j+1)**2 * (3*(i+1)-(j+1)) # i>j
+ # Elasticity module
+ fc28 = 25 #MPA or MN/m2
+ E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
+ TSA = matrix_to_table(SA)
+ TM = matrix_to_table(M)
+ return SA, M, E, TSA, TM
 
- return f
+def dynamic2(h,E,I,SA,M): 
+ f= h**3 / (6 * E * I) #m/KN factor
+ S= f * SA # flexibility matrix
+ D =  S @ M #matrix product dynamic matrix
+ eigen_values, eigen_vectors = np.linalg.eig(D) #eigen values are lambdas
+ TS = matrix_to_table(S)
+ TD = matrix_to_table(D)
+ Teigen_vectors = matrix_to_table(eigen_vectors)
+ periods = eigen_values ** 0.5 * 2 * 3.14
+ return f, TS, TD, eigen_values, Teigen_vectors, periods
