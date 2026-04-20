@@ -11,15 +11,15 @@ def columns():
  # number of floors above the base level
  #in general case the base level isn't necessary the ground floor but the last underneath floor
  # the last floor under the surface of soil
- nSF = 7 # number of floors above the soil surface
- nUF = 1 # number of floors under the soil surface
+ nSF = 0 # number of floors above the soil surface
+ nUF = 0 # number of floors under the soil surface
  n = nSF + nUF  #total number of floors above the base level we add 1 the ground floor and we 
  # remove the last underneath floor which is the base floor  
- fc28,fe = 25,400
- S = 13.035
+ fc28,fe = 0,0
+ S = 0
 # dead loads G and live loads Q
- GRT,GCF = 802,665
- QRT,QCF = 100,150
+ GRT,GCF = 0,0
+ QRT,QCF = 0,0
  Smaj,NG,NQ,Nu,alpha,Brmin,Nd,Bcmin,amin,a,Bc,Br=\
  RC_column(fc28,fe,S,n,GCF,GRT,QRT,QCF)
  T2 = pd.DataFrame({"Smaj": Smaj.reshape(-1),"NG": NG.reshape(-1),"NQ": NQ.reshape(-1),
@@ -38,31 +38,31 @@ def geometry():
  print("Running case 2: geometry_attributes")
  # your code here
  #shape1
- a1 = [0.4, 0.2, 0.4]
- b1 = [0.4, 3.8, 0.4]
- xg1 = [0.2, 0.2, 0.2]
- yg1 = [0.2, 2.3, 4.4]
+ a1 = [0]
+ b1 = [0]
+ xg1 = [0]
+ yg1 = [0]
  T_scalar1, T_vec1 = shape_geometry_attributes(a1, b1, xg1, yg1)
 
  #shape2
- a2 = [0.4, 0.2]
- b2 = [0.4, 2.3]
- xg2 = [0.2, 0.2]
- yg2 = [0.2, 1.55]
+ a2 = [0]
+ b2 = [0]
+ xg2 = [0]
+ yg2 = [0]
  T_scalar2, T_vec2 = shape_geometry_attributes(a2, b2, xg2, yg2)
 
  #shape3
- a3 = [0.4, 2.1]
- b3 = [0.4, 0.2]
- xg3 = [0.2, 1.45]
- yg3 = [0.2, 0.2]
+ a3 = [0]
+ b3 = [0]
+ xg3 = [0]
+ yg3 = [0]
  T_scalar3, T_vec3 = shape_geometry_attributes(a3, b3, xg3, yg3)
 
  #shape4
- a4 = [5.75]
- b4 = [0.2]
- xg4 = [2.875]
- yg4 = [0.1]
+ a4 = [0]
+ b4 = [0]
+ xg4 = [0]
+ yg4 = [0]
  T_scalar4, T_vec4 = shape_geometry_attributes(a4, b4, xg4, yg4)
 
  # general scheme RC walls coordinates
@@ -71,20 +71,12 @@ def geometry():
  yg1g = T_scalar1["yg_global"].iloc[0]
  yg2g = T_scalar2["yg_global"].iloc[0]
 
- Lx,Ly = 21.77,15.7 
+ Lx,Ly = 0,0 
  # X
- X = [0.2, Lx-0.2, 0.2, Lx-0.2,                #i=0:4
- 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=4:8
- 4.5+xg3g, Lx-4.5-xg3g, 4.5+xg3g, Lx-4.5-xg3g, #i=8:12
- 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=12:16     
-]
+ X = [0]
 
  # Y
- Y = [1+yg1g, 1+yg1g, Ly-1-yg1g, Ly-1-yg1g,    #i=0:4
- 1+yg2g, 1+yg2g, Ly-1-yg2g, Ly-1-yg2g,         #i=4:8
- 5.4, 5.4, Ly-5.4, Ly-5.4,                     #i=8:12
- 0.1, 0.1, Ly-0.1, Ly-0.1,                     #i=12:16     
-]
+ Y = []
 
  T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,X,Y)
 
