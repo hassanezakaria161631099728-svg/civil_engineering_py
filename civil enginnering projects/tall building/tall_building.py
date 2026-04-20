@@ -6,7 +6,7 @@ building_masses,dynamic1,dynamic2)
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
 
 def columns():
- print("Running case 2: columns analysis")
+ print("Running case 1: columns analysis")
  # your code here
  # number of floors above the base level
  #in general case the base level isn't necessary the ground floor but the last underneath floor
@@ -35,58 +35,68 @@ def columns():
  exptxt(tables, names, "tall building/RC column.txt", 12)
 
 def geometry():
- print("Running geometry_attributes")
+ print("Running case 2: geometry_attributes")
  # your code here
- # RC wall 1 
- a1 = [0.45, 3.95, 0.45, 0.2] 
- b1 = [0.45, 0.2, 0.45, 2.075] 
- xg1 = [0.225, 2.425, 4.625, 0.225]
- yg1 = [0.225, 0.225, 0.225, 1.4875]
-
+ #shape1
+ a1 = [0.4, 0.2, 0.4]
+ b1 = [0.4, 3.8, 0.4]
+ xg1 = [0.2, 0.2, 0.2]
+ yg1 = [0.2, 2.3, 4.4]
  T_scalar1, T_vec1 = shape_geometry_attributes(a1, b1, xg1, yg1)
 
- # RC wall 2 
- a2 = [0.45, 0.2, 0.45] 
- b2 = [0.45, 3.05, 0.45] 
- xg2 = [0.225, 0.225, 0.225]
- yg2 = [0.225, 1.975, 3.725]
-
+ #shape2
+ a2 = [0.4, 0.2]
+ b2 = [0.4, 2.3]
+ xg2 = [0.2, 0.2]
+ yg2 = [0.2, 1.55]
  T_scalar2, T_vec2 = shape_geometry_attributes(a2, b2, xg2, yg2)
 
- # RC wall 3 
- a3 = [0.45, 0.2, 0.45] 
- b3 = [0.45, 3.95, 0.45] 
- xg3 = [0.225, 0.225, 0.225]
- yg3 = [0.225, 2.425, 4.625]
-
+ #shape3
+ a3 = [0.4, 2.1]
+ b3 = [0.4, 0.2]
+ xg3 = [0.2, 1.45]
+ yg3 = [0.2, 0.2]
  T_scalar3, T_vec3 = shape_geometry_attributes(a3, b3, xg3, yg3)
 
- # RC wall 4 
- a4 = [0.45, 2.075] 
- b4 = [0.45, 0.2] 
- xg4 = [0.225, 1.2625]
- yg4 = [0.225, 0.225]
-
+ #shape4
+ a4 = [5.75]
+ b4 = [0.2]
+ xg4 = [2.875]
+ yg4 = [0.1]
  T_scalar4, T_vec4 = shape_geometry_attributes(a4, b4, xg4, yg4)
 
- # RC wall 5 
- a5 = [4.4] 
- b5 = [0.2] 
- xg5 = [2.2]
- yg5 = [0.2]
+ # general scheme RC walls coordinates
+ # centre of mass vectors 
+ xg3g = T_scalar3["xg_global"].iloc[0]
+ yg1g = T_scalar1["yg_global"].iloc[0]
+ yg2g = T_scalar2["yg_global"].iloc[0]
 
- T_scalar5, T_vec5 = shape_geometry_attributes(a5, b5, xg5, yg5)
- T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5)
+ Lx,Ly = 21.77,15.7 
+ # X
+ X = [0.2, Lx-0.2, 0.2, Lx-0.2,                #i=0:4
+ 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=4:8
+ 4.5+xg3g, Lx-4.5-xg3g, 4.5+xg3g, Lx-4.5-xg3g, #i=8:12
+ 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=12:16     
+]
+
+ # Y
+ Y = [1+yg1g, 1+yg1g, Ly-1-yg1g, Ly-1-yg1g,    #i=0:4
+ 1+yg2g, 1+yg2g, Ly-1-yg2g, Ly-1-yg2g,         #i=4:8
+ 5.4, 5.4, Ly-5.4, Ly-5.4,                     #i=8:12
+ 0.1, 0.1, Ly-0.1, Ly-0.1,                     #i=12:16     
+]
+
+ T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,X,Y)
 
 # export results
- tables = [T_vec1,T_scalar1, T_vec2,T_scalar2, T_vec3,T_scalar3, T_vec4,T_scalar4, T_vec5,T_scalar5,
+ tables = [T_vec1,T_scalar1, T_vec2,T_scalar2, T_vec3,T_scalar3, T_vec4,T_scalar4,
  T_sectorial, T_sectorial_scalars]
- names = ["vectors1","scalars1", "vectors2","scalars2", "vectors3","scalars3",
- "vectors4","scalars4","vectors5","scalars5","sectorial_attributes","sectorial_attributes_scalars"]
- exptxt(tables, names, "tall building/geometry attributes.txt", 12)
+ names = ["vectors1","scalars1", "vectors2","scalars2", "vectors3","scalars3","vectors4","scalars4",
+ "sectorial_attributes","sectorial_attributes_scalars"]
+ exptxt(tables, names, "tall building/geometry.txt", 12)
 
 def masses():
- print("running masses")
+ print("running case 3: masses")
  #your code here
  geometry = read_tables_txt3("tall building/geometry.txt")
  Lx,Ly = 23.05,19.25 #building dimension x y
@@ -103,28 +113,15 @@ def masses():
  names = ["roof_top_barricade","RC_walls", "RC_columns"]
  exptxt(tables, names, "tall building/masses.txt", 12)
  
-def test():
- print("Running case 2: testing")
- # your code here
- n = 16
- Ix_total,Iy_total = np.zeros((n)), np.zeros((n))
- Ix_total[0:4], Iy_total[0:4] = 1, 1
- Ix_total[4:8], Iy_total[4:8] = 2, 2
- Ix_total[8:10], Iy_total[8:10] = 3, 3
- Ix_total[10:14], Iy_total[10:14] = 4, 4
- Ix_total[14:16], Iy_total[14:16] = 5, 5
-
- print(Ix_total)
-
 def dynamic():
- print("Running case 1: dynamic analysis")
+ print("Running case 4: dynamic analysis")
  # your code here
- n = 9
- M1, M2, M3 = 710.021, 703.74, 705.94 #masses
+ n = 8 #number of floors above the base floor
+ M1, M2, M3 = 606.342, 603.945, 577.434 #masses
  # SA and mass matrices and Elasticity module
  SA, M, E, TSA, TM = dynamic1(n,M1,M2,M3)
  h = 3.24 #m story height
- Ix, Iy = 97.13, 808.809
+ Ix, Iy = 16.28, 22.035
  fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  names = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy"]
@@ -138,6 +135,19 @@ def dynamic():
  tables = [T,T2]
  names = ["periods_secondes","scalars"]
  exptxt(tables, names, "tall building/dynamic2.txt", 12)
+
+def test():
+ print("Running case 2: testing")
+ # your code here
+ n = 16
+ Ix_total,Iy_total = np.zeros((n)), np.zeros((n))
+ Ix_total[0:4], Iy_total[0:4] = 1, 1
+ Ix_total[4:8], Iy_total[4:8] = 2, 2
+ Ix_total[8:10], Iy_total[8:10] = 3, 3
+ Ix_total[10:14], Iy_total[10:14] = 4, 4
+ Ix_total[14:16], Iy_total[14:16] = 5, 5
+
+ print(Ix_total)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
