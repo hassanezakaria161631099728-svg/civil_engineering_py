@@ -118,55 +118,30 @@ def shape_geometry_attributes(a, b, xg, yg):
  "Ix_local": Ix_local,"Iy_local": Iy_local,"Ix": Ix,"Iy": Iy})
  return T_scalar, T_vec
 
-def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,T_scalar5):
+def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,X,Y):
 # we define geometrical attributes for reinforced concrete walls
 #inertia X axis
  Ix_total1 = T_scalar1["Ix_total"].iloc[0]
  Ix_total2 = T_scalar2["Ix_total"].iloc[0]
  Ix_total3 = T_scalar3["Ix_total"].iloc[0]
  Ix_total4 = T_scalar4["Ix_total"].iloc[0]
- Ix_total5 = T_scalar5["Ix_total"].iloc[0]
-
 #inertia Y axis
  Iy_total1 = T_scalar1["Iy_total"].iloc[0]
  Iy_total2 = T_scalar2["Iy_total"].iloc[0]
  Iy_total3 = T_scalar3["Iy_total"].iloc[0]
  Iy_total4 = T_scalar4["Iy_total"].iloc[0]
- Iy_total5 = T_scalar5["Iy_total"].iloc[0]
 # surfaces 
  A_total1 = T_scalar1["A_total"].iloc[0]
  A_total2 = T_scalar2["A_total"].iloc[0]
  A_total3 = T_scalar3["A_total"].iloc[0]
  A_total4 = T_scalar4["A_total"].iloc[0]
- A_total5 = T_scalar5["A_total"].iloc[0]
  n = 16
 # inertia vectors
  Ix_total,Iy_total,A_total = np.zeros((n)), np.zeros((n)), np.zeros((n))
  Ix_total[0:4], Iy_total[0:4], A_total[0:4] = Ix_total1, Iy_total1, A_total1 
  Ix_total[4:8], Iy_total[4:8], A_total[4:8] = Ix_total2, Iy_total2, A_total2
- Ix_total[8:10], Iy_total[8:10], A_total[8:10] = Ix_total3, Iy_total3, A_total3
- Ix_total[10:14], Iy_total[10:14], A_total[10:14] = Ix_total4, Iy_total4, A_total4
- Ix_total[14:16], Iy_total[14:16], A_total[14:16] = Ix_total5, Iy_total5, A_total5
-# centre of mass vectors
- xg1 = T_scalar1["xg_global"].iloc[0]
- xg4 = T_scalar1["xg_global"].iloc[0]
- yg1 = T_scalar1["yg_global"].iloc[0]
- yg2 = T_scalar1["yg_global"].iloc[0]
- yg3 = T_scalar1["yg_global"].iloc[0]
-
- Lx,Ly = 23.05, 19.25
- X = [xg1, Lx-xg1, xg1, Lx-xg1,            #i=0:4
- 9.925, Lx-9.925, 9.925, Lx-9.925,         #i=4:8
- 6.525, Lx-6.525,                          #i=8:10
- 10.15-xg4,12.9+xg4, 10.15-xg4,12.9+xg4,   #i=10:14
- 2.425,Lx-2.425                           #i=14:16 
- ]
- Y = [yg1, yg1, Ly-yg1, Ly-yg1,            #i=0:4
- yg2, yg2, Ly-yg2, Ly-yg2,                 #i=4:8
- 3.5+yg3, 10.9+yg3,                        #i=8:10
- 8.125,8.125, Ly-8.125,Ly-8.125,           #i=10:14
- Ly/2,Ly/2                                #i=14:16 
- ]
+ Ix_total[8:12], Iy_total[8:12], A_total[8:12] = Ix_total3, Iy_total3, A_total3
+ Ix_total[12:16], Iy_total[12:16], A_total[12:16] = Ix_total4, Iy_total4, A_total4
 
  A_scalar,Ix_scalar,Iy_scalar = np.sum(A_total),np.sum(Ix_total),np.sum(Iy_total)
 
