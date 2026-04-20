@@ -18,8 +18,8 @@ def columns():
  fc28,fe = 0,0
  S = 0
 # dead loads G and live loads Q
- GRT,GCF = 0,0
- QRT,QCF = 0,0
+ GRT,GCF = 797,665
+ QRT,QCF = 100,150
  Smaj,NG,NQ,Nu,alpha,Brmin,Nd,Bcmin,amin,a,Bc,Br=\
  RC_column(fc28,fe,S,n,GCF,GRT,QRT,QCF)
  T2 = pd.DataFrame({"Smaj": Smaj.reshape(-1),"NG": NG.reshape(-1),"NQ": NQ.reshape(-1),
@@ -91,13 +91,13 @@ def masses():
  print("running case 3: masses")
  #your code here
  geometry = read_tables_txt3("tall building/geometry.txt")
- Lx,Ly = 23.05,19.25 #building dimension x y
- h_story,h_beam = 3.06,0.4 
+ Lx,Ly = 0,0 #building dimension x y
+ h_story,h_beam = 0,0 
  DC = 2.5 #concrete density
  # roof top barricade
  G_RTB = 211.1 #kg/m
  #RC columns
- n_RC_columns,a_RC_column = 48,0.45
+ n_RC_columns,a_RC_column = 0,0
  T_RTB,T_RC_walls,T_RC_columns = \
  building_masses(geometry,Lx,Ly,G_RTB,h_story,h_beam,a_RC_column,n_RC_columns,DC)
 # export results
@@ -108,12 +108,12 @@ def masses():
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
- n = 8 #number of floors above the base floor
+ n = 0 #number of floors above the base floor
  M1, M2, M3 = 606.342, 603.945, 577.434 #masses
  # SA and mass matrices and Elasticity module
  SA, M, E, TSA, TM = dynamic1(n,M1,M2,M3)
- h = 3.24 #m story height
- Ix, Iy = 16.28, 22.035
+ h = 0 #m story height
+ Ix, Iy = 0, 0
  fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  names = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy"]
@@ -131,7 +131,7 @@ def dynamic():
 def test():
  print("Running case 2: testing")
  # your code here
- n = 16
+ n = 0
  Ix_total,Iy_total = np.zeros((n)), np.zeros((n))
  Ix_total[0:4], Iy_total[0:4] = 1, 1
  Ix_total[4:8], Iy_total[4:8] = 2, 2
