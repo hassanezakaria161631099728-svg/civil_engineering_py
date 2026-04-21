@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from modules.building_elements import (stairs,RC_column,RC_shear_force,shape_geometry_attributes,
 sectorial,building_masses,dynamic1,dynamic2)
+from modules.FEM import generate_grid,plot_grid
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
 
 def elements():
@@ -155,18 +156,12 @@ def dynamic():
  names = ["periods_secondes","scalars"]
  exptxt(tables, names, "tall building/dynamic2.txt", 12)
 
-def test():
- print("Running case 2: testing")
+def plot():
+ print("Running case 2: building upper vue ground level XY")
  # your code here
- n = 16
- Ix_total,Iy_total = np.zeros((n)), np.zeros((n))
- Ix_total[0:4], Iy_total[0:4] = 1, 1
- Ix_total[4:8], Iy_total[4:8] = 2, 2
- Ix_total[8:10], Iy_total[8:10] = 3, 3
- Ix_total[10:14], Iy_total[10:14] = 4, 4
- Ix_total[14:16], Iy_total[14:16] = 5, 5
-
- print(Ix_total)
+ nx,ny,Lx,Ly = 6,6,4.5,4.5
+ nodes,_=generate_grid(nx, ny, Lx, Ly)
+ plot_grid(nodes, nx, ny, "tall building", "ground_level_XY.png")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -182,8 +177,8 @@ if __name__ == "__main__":
             masses()
         elif command == "dynamic":
             dynamic()
-        elif command == "test":
-            test()
+        elif command == "plot":
+            plot()
         else:
             print("Unknown case")
             
