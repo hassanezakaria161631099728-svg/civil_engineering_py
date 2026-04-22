@@ -20,24 +20,27 @@ def stairs(story_height, vertical_step, horizontal_step):
  horizontal_step,stairs_length,slope_angle,slope_angle_deg)
 
 def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor):
-  Smaj = 1.1 * S #m
-#  NG = 1.1 * (n * G_current_floor + G_roof_top) * Smaj / 100 #converting Kg to KN 
-#  NQ = (Q_roof_top + Q_current_floor * (1+0.9+0.8+0.7+0.6+(n-5)*0.5)+Q_ground_floor) * Smaj / 100 #KN
-  NQ = compute_NQ(n+1,Q_current_floor,Q_roof_top,Smaj) 
-  NG = compute_NG(n+1,G_current_floor,G_roof_top,Smaj) 
-  Nu = (1.35 * NG + 1.5 * NQ) / 1000 # converting KN to MN
-  Smaj = np.full((n+1, 1), Smaj)
-  alpha = 0.85 / 1.2
-  alpha = np.full((n+1, 1), alpha)
-  Brmin = Nu / (alpha * (fc28 / (0.9 * 1.5) + 0.01 * fe / 1.15)) #m2
-#gamma c is 1.5 and gamma s is 1.15 
-  Nd = (NG + NQ) / 1000 
-  Bcmin = Nu / (0.3 * fc28)
-  amin = Bcmin**0.5
-  a = np.ceil(amin*20)/20
-  Bc = a*a # we have a rectangular column
-  Br = (a - 0.02)**2
-  return Smaj,NG,NQ,Nu,alpha,Brmin,Nd,Bcmin,amin,a,Bc,Br
+ Smaj = 1.1 * S #m
+ # NG = 1.1 * (n * G_current_floor + G_roof_top) * Smaj / 100 #converting Kg to KN 
+ # NQ = (Q_roof_top + Q_current_floor * (1+0.9+0.8+0.7+0.6+(n-5)*0.5)+Q_ground_floor) * Smaj / 100 #KN
+ NQ = compute_NQ(n+1,Q_current_floor,Q_roof_top,Smaj) 
+ NG = compute_NG(n+1,G_current_floor,G_roof_top,Smaj) 
+ Nu = (1.35 * NG + 1.5 * NQ) / 1000 # converting KN to MN
+ Smaj = np.full((n+1, 1), Smaj)
+ alpha = 0.85 / 1.2
+ alpha = np.full((n+1, 1), alpha)
+ Brmin = Nu / (alpha * (fc28 / (0.9 * 1.5) + 0.01 * fe / 1.15)) #m2
+ #gamma c is 1.5 and gamma s is 1.15 
+ Bcmin = Nu / (0.3 * fc28)
+ amin = Bcmin**0.5
+ a = np.ceil(amin*20)/20
+ Bc = a*a # we have a rectangular column
+ Br = (a - 0.02)**2
+ T = pd.DataFrame({"Smaj": Smaj.reshape(-1),"NG": NG.reshape(-1),"NQ": NQ.reshape(-1),
+ "Nu": Nu.reshape(-1),"alpha": alpha.reshape(-1),"Brmin": Brmin.reshape(-1),
+ "Bcmin": Bcmin.reshape(-1),"amin": amin.reshape(-1),"a": a.reshape(-1),
+ "Bc": Bc.reshape(-1),"Br": Br.reshape(-1)})
+ return T
 
 def RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d): #units mm and N
   ft28 = 0.06 * fc28 + 0.6 
@@ -184,7 +187,7 @@ def building_masses(geometry,Lx,Ly,G_RTB,h_story,h_beam,a_RC_column,n_RC_columns
  "m_tonnes": [m_RC_columns]})
  return T_RTB,T_RC_walls,T_RC_columns
 
-def dynamic1(n,M1,M2,M3):
+def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
  #mass matrix
  M = np.zeros((n+1,n+1))
  for i in range(n-1): M[i,i] = M1 #fill diagonal for i=1 to n-2 
@@ -197,12 +200,17 @@ def dynamic1(n,M1,M2,M3):
         if i<j: SA[i,j] = (i+1)**2 * (3*(j+1)-(i+1))
         elif i==j: SA[i,j] = 2*(i+1)**3
         else : SA[i,j] = (j+1)**2 * (3*(i+1)-(j+1)) # i>j
+ MR = M * (Lx**2 + Ly**2) / 12
  # Elasticity module
  fc28 = 25 #MPA or MN/m2
  E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
  TSA = matrix_to_table(SA)
  TM = matrix_to_table(M)
- return SA, M, E, TSA, TM
+ if case == "no bricks": CT = 0.075
+ elif case == "with bricks": CT = 0.05
+ else: raise ValueError("specify the case")
+ T_imperial = CT * (n * h) ** 0.75
+ return SA, M, MR, E, TSA, TM, T_imperial
 
 def dynamic2(h,E,I,SA,M): 
  f= h**3 / (6 * E * I) #m/KN factor
