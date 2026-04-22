@@ -27,26 +27,25 @@ def elements():
  nUF = 0 # number of floors under the soil surface
  n = nSF + nUF  #total number of floors above the base level we add 1 the ground floor and we 
  # remove the last underneath floor which is the base floor  
- fc28,fe = 30,500
- S = 20.36
+ fc28,fe = 30,400
+ Lx,Ly= 4.5,4.5 
+ S1 = Lx * Ly
+ S2,S3 = S1/2, S1/4 
  # dead loads G and live loads Q
  GRT,GCF = 787,665
  QRT,QCF = 100,150
- Smaj,NG,NQ,Nu,alpha,Brmin,Nd,Bcmin,amin,a,Bc,Br=\
- RC_column(fc28,fe,S,n,GCF,GRT,QRT,QCF)
- T2 = pd.DataFrame({"Smaj": Smaj.reshape(-1),"NG": NG.reshape(-1),"NQ": NQ.reshape(-1),
- "Nu": Nu.reshape(-1),"alpha": alpha.reshape(-1),"Brmin": Brmin.reshape(-1),"Nd": Nd.reshape(-1),
- "Bcmin": Bcmin.reshape(-1),"amin": amin.reshape(-1),"a": a.reshape(-1),
- "Bc": Bc.reshape(-1),"Br": Br.reshape(-1)})
+ T2 = RC_column(fc28,fe,S1,n,GCF,GRT,QRT,QCF)
+ T3 = RC_column(fc28,fe,S2,n,GCF,GRT,QRT,QCF)
+ T4 = RC_column(fc28,fe,S3,n,GCF,GRT,QRT,QCF)
  #RC shear force units are in mm and N
  At,b,d,alpha = 452,250,500,0.85/1.2
  Vu_reduced = 179000
  ft28,up,down,stmin=\
  RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
- T3 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
+ T5 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
  # export results
- tables = [T1,T2,T3]
- names = ["stairs","RC_column","RC_shear_force"]
+ tables = [T1,T2,T3,T4,T5]
+ names = ["stairs","RC_column1","RC_column2","RC_column3","RC_shear_force"]
  exptxt(tables, names, "tall building/elements.txt", 12)
 
 def geometry():
@@ -131,27 +130,27 @@ def masses():
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
- n = 8 #number of floors above the base floor
- M1, M2, M3 = 606.342, 603.945, 577.434 #masses
- Lx, Ly = 22.6, 18.8
+ n = 9 #number of floors above the base floor
+ M1, M2, M3 = 710.02, 703.74, 705.94 #masses
+ Lx, Ly = 45.2, 17.4
  # SA and mass matrices and Elasticity module
- h = 3.06 #m story height
+ h = 3.24 #m story height
  # case there is only "with bricks" or "no bricks"
  case = "with bricks"
  SA, M, MR, E, TSA, TM, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
- Ix, Iy, Iw = 15.49, 22.3166, 1964.139
+ Ix, Iy, Iw = 97.133, 808.81, 374955.3
  fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
- fw, TSw, TDw, eigen_valuesw, _, periods_y = dynamic2(h,E,Iw,SA,MR) 
+ fw, TSw, TDw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
  names = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw"]
- matrices = [TSA, TM, TSx, TDx, Teigen_vectors, TSy, TDy]
-# float_format = "{:.3f}".format
+ matrices = [TSA, TM, TSx, TDx, Teigen_vectors, TSy, TDy, MR, TSw, TDw]
+ #float_format = "{:.3f}".format
  export_matrices_txt2(matrices, names, "tall building/dynamic.txt")
- T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,
- "periods_x_s": periods_x,"periods_y_s": periods_y})
- T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],
+ T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,"eigen_valuesw": eigen_valuesw,
+ "periods_x_s": periods_x,"periods_y_s": periods_y,"periods_w_s": periods_w})
+ T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
  "T_imperial":[T_imperial]})
-# export results
+ #export results
  tables = [T,T2]
  names = ["periods_secondes","scalars"]
  exptxt(tables, names, "tall building/dynamic2.txt", 12)
