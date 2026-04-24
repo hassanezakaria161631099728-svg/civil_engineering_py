@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 from modules.building_elements import (stairs,RC_column,RC_shear_force,shape_geometry_attributes,
-sectorial,building_masses,dynamic1,dynamic2)
+sectorial,masses1,dynamic1,dynamic2)
 from modules.FEM import generate_grid,plot_grid
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
 
@@ -113,19 +113,21 @@ def masses():
  print("running case 3: masses")
  #your code here
  geometry = read_tables_txt3("tall building/geometry.txt")
- Lx,Ly = 23.05,19.25 #building dimension x y
- h_story,h_beam = 3.06,0.4 
- DC = 2.5 #concrete density
+ Lx,Ly = 21.37,15.7 #building dimension x y
+ h_story,h_beam,b_beam = 3.06,0.4,0.3 
+ nx,ny = 5,3
+ CD = 2.5 #concrete density
  # roof top barricade
- G_RTB = 211.1 #kg/m
  #RC columns
- n_RC_columns,a_RC_column = 48,0.45
- T_RTB,T_RC_walls,T_RC_columns = \
- building_masses(geometry,Lx,Ly,G_RTB,h_story,h_beam,a_RC_column,n_RC_columns,DC)
-# export results
- tables = [T_RTB,T_RC_walls, T_RC_columns]
- names = ["roof_top_barricade","RC_walls", "RC_columns"]
- exptxt(tables, names, "tall building/masses.txt", 12)
+ n_columns,a_column = 48,0.45
+ T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,m_RT = \
+ masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam)
+ print(m_RT)
+ #export results
+ tables = [T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams]
+ names = ["roof_top_barricade","RC_walls", "RC_columns","RC_beams","floor",
+ "loads_on_beams"]
+ exptxt(tables, names, "tall building/masses.txt", 18)
  
 def dynamic():
  print("Running case 4: dynamic analysis")
