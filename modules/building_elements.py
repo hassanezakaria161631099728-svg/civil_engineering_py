@@ -167,25 +167,52 @@ def sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,X,Y):
 
  return T_sectorial, T_sectorial_scalar
 
-def building_masses(geometry,Lx,Ly,G_RTB,h_story,h_beam,a_RC_column,n_RC_columns,DC):
+def masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam):
  geometry_attributes = geometry["sectorial_attributes_scalars"]
  geometry_attributes["A"] = geometry_attributes["A"].astype(float)
  A_RC_walls = geometry_attributes["A"].iloc[0]
  #roof top barricade 
+ G_RTB = 211.1
  L_RTB = (Lx + Ly) * 2 #m
  m_RTB = G_RTB * L_RTB / 1000
  T_RTB = pd.DataFrame({"G_kg/m": [G_RTB],"L_m": [L_RTB],"m_tonnes": [m_RTB]})
  # RC walls
  h_RC_wall = h_story - h_beam
  v_RC_walls = A_RC_walls * h_RC_wall          
- m_RC_walls = v_RC_walls * DC           
+ m_RC_walls = v_RC_walls * CD           
  T_RC_walls = pd.DataFrame({"height_m": [h_RC_wall],"volume_m3": [v_RC_walls],"m_tonnes": [m_RC_walls]})
  # RC columns
- S_RC_column = a_RC_column * a_RC_column
- m_RC_columns = h_story * n_RC_columns * S_RC_column *  DC 
- T_RC_columns = pd.DataFrame({"n_columns": [n_RC_columns],"a_m": [a_RC_column],"S_m2": [S_RC_column],
- "m_tonnes": [m_RC_columns]})
- return T_RTB,T_RC_walls,T_RC_columns
+ S_column = a_column * a_column
+ m_columns = h_story * n_columns * S_column *  CD 
+ T_columns = pd.DataFrame({"h_story": [h_story],"a_m": [a_column],"S_m2": [S_column],
+ "n_columns": [n_columns],"concrete_density":CD,"m_tonnes": [m_columns]})
+ # RC beams
+ L_beams = (nx+1) * (Ly-ny*a_column) + (ny+1) * (Lx-nx*a_column) 
+ S_beam = b_beam * h_beam
+ m_beams = L_beams * S_beam * CD 
+ T_beams = pd.DataFrame({"L_m": [L_beams],"b_m": [b_beam],"h_m": [h_beam],"S_m2": [S_beam],
+ "m_tonnes": [m_beams]})
+ Q_RTF,Q_CF,G_RTF,G_CF = 100,150,787.6,665  
+ #rooftop floor
+ S_floor = (Lx-nx*b_beam)*(Ly-ny*b_beam) - (a_column-b_beam)**2 * n_columns
+ m_RTF = G_RTF * S_floor / 1000 
+ m_CF = G_CF * S_floor / 1000 
+ T_floor = pd.DataFrame({"G_RTF": [G_RTF],"G_CF": [G_CF],"S_m2": [S_floor],
+ "m_RTF": [m_RTF],"m_CF": [m_CF]})
+ #loads on beams
+ m_loads_on_beams_RT = (G_RTF - 400) * b_beam * L_beams / 1000 #rooftop
+ m_loads_on_beams_CF = (G_CF - 400) * b_beam * L_beams / 1000  # current floor
+ T_loads_on_beams = pd.DataFrame({"b_beam": [b_beam],"L_beams": [L_beams],
+ "m_loads_on_beams_rooftop":[m_loads_on_beams_RT],"m_loads_on_beams_current_floor":[m_loads_on_beams_CF]})
+ #total mass rooftop
+ m_RT = m_RTF + m_beams + 0.5 * (m_columns+m_RC_walls) + m_RTB + m_loads_on_beams_RT 
+ + 0.2 * Q_RTF * S_floor 
+ #tiles
+ G_tile = 299
+ h_tiles = h_story - h_beam
+ m_tiles = G_tile * h_tiles * L_RTB 
+
+ return T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,m_RT
 
 def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
  #mass matrix
