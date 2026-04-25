@@ -25,8 +25,7 @@ def elements():
  # the last floor under the surface of soil
  nSF = 9 # number of floors above the soil surface
  nUF = 0 # number of floors under the soil surface
- n = nSF + nUF  #total number of floors above the base level we add 1 the ground floor and we 
- # remove the last underneath floor which is the base floor  
+ n = nSF + nUF  #total number of floors above the base level  
  fc28,fe = 30,400
  Lx,Ly= 4.5,4.5 
  S1 = Lx * Ly
