@@ -52,95 +52,65 @@ def geometry():
  print("Running case 2: geometry_attributes")
  # your code here
  #shape1
- a1 = [0.4, 0.2, 0.4]
- b1 = [0.4, 3.8, 0.4]
- xg1 = [0.2, 0.2, 0.2]
- yg1 = [0.2, 2.3, 4.4]
+ a,Lx,Ly,e = 0.45,4.5,4.5,0.2
+ a1 = [a, Lx-a,  a,    e, a]
+ b1 = [a,    e,  a, Ly-a, a]
+ xg1 = [a/2, (Lx-a)/2+a, Lx+a/2,        a/2,      a/2]
+ yg1 = [a/2,        a/2,    a/2, (Ly-a)/2+a,   a/2+Ly]
  T_scalar1, T_vec1 = shape_geometry_attributes(a1, b1, xg1, yg1)
-
- #shape2
- a2 = [0.4, 0.2]
- b2 = [0.4, 2.3]
- xg2 = [0.2, 0.2]
- yg2 = [0.2, 1.55]
- T_scalar2, T_vec2 = shape_geometry_attributes(a2, b2, xg2, yg2)
-
- #shape3
- a3 = [0.4, 2.1]
- b3 = [0.4, 0.2]
- xg3 = [0.2, 1.45]
- yg3 = [0.2, 0.2]
- T_scalar3, T_vec3 = shape_geometry_attributes(a3, b3, xg3, yg3)
-
- #shape4
- a4 = [5.75]
- b4 = [0.2]
- xg4 = [2.875]
- yg4 = [0.1]
- T_scalar4, T_vec4 = shape_geometry_attributes(a4, b4, xg4, yg4)
 
  # general scheme RC walls coordinates
  # centre of mass vectors 
- xg3g = T_scalar3["xg_global"].iloc[0]
+ xg1g = T_scalar1["xg_global"].iloc[0]
  yg1g = T_scalar1["yg_global"].iloc[0]
- yg2g = T_scalar2["yg_global"].iloc[0]
 
- Lx,Ly = 21.77,15.7 
+ Lbx,Lby = 22.5, 22.5 
  # X
- X = [0.2, Lx-0.2, 0.2, Lx-0.2,                #i=0:4
- 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=4:8
- 4.5+xg3g, Lx-4.5-xg3g, 4.5+xg3g, Lx-4.5-xg3g, #i=8:12
- 4.7, Lx-4.7, 4.7, Lx-4.7,                     #i=12:16     
-]
+ X = [xg1g, Lbx-xg1g, xg1g, Lbx-xg1g]
 
  # Y
- Y = [1+yg1g, 1+yg1g, Ly-1-yg1g, Ly-1-yg1g,    #i=0:4
- 1+yg2g, 1+yg2g, Ly-1-yg2g, Ly-1-yg2g,         #i=4:8
- 5.4, 5.4, Ly-5.4, Ly-5.4,                     #i=8:12
- 0.1, 0.1, Ly-0.1, Ly-0.1,                     #i=12:16     
-]
+ Y = [yg1g, yg1g, Lby-yg1g, Lby-yg1g]
 
- T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,T_scalar2,T_scalar3,T_scalar4,X,Y)
+ T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,X,Y)
 
 # export results
- tables = [T_vec1,T_scalar1, T_vec2,T_scalar2, T_vec3,T_scalar3, T_vec4,T_scalar4,
- T_sectorial, T_sectorial_scalars]
- names = ["vectors1","scalars1", "vectors2","scalars2", "vectors3","scalars3","vectors4","scalars4",
- "sectorial_attributes","sectorial_attributes_scalars"]
+ tables = [T_vec1,T_scalar1,T_sectorial, T_sectorial_scalars]
+ names = ["vectors1","scalars1", "sectorial_attributes","sectorial_attributes_scalars"]
  exptxt(tables, names, "tall building/geometry.txt", 12)
 
 def masses():
  print("running case 3: masses")
  #your code here
  geometry = read_tables_txt3("tall building/geometry.txt")
- Lx,Ly = 21.37,15.7 #building dimension x y
+ Lx,Ly = 22.5,22.5 #building dimension x y
  h_story,h_beam,b_beam = 3.06,0.4,0.3 
- nx,ny = 5,3
+ nx,ny = 5,5
  CD = 2.5 #concrete density
  # roof top barricade
  #RC columns
- n_columns,a_column = 48,0.45
- T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,m_RT = \
+ n_columns,a_column = 36,0.45
+ T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,T_tiles,m_RT,m_BLF = \
  masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam)
  print(m_RT)
+ print(m_BLF)
  #export results
- tables = [T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams]
+ tables = [T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,T_tiles]
  names = ["roof_top_barricade","RC_walls", "RC_columns","RC_beams","floor",
- "loads_on_beams"]
+ "loads_on_beams","tiles"]
  exptxt(tables, names, "tall building/masses.txt", 18)
  
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
  n = 9 #number of floors above the base floor
- M1, M2, M3 = 710.02, 703.74, 705.94 #masses
- Lx, Ly = 45.2, 17.4
+ M1, M2, M3 = 549.56, 549.56, 524.36 #masses
+ Lx, Ly = 22.5, 22.5
  # SA and mass matrices and Elasticity module
- h = 3.24 #m story height
+ h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
  case = "with bricks"
  SA, M, MR, E, TSA, TM, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
- Ix, Iy, Iw = 97.133, 808.81, 374955.3
+ Ix, Iy, Iw = 23.865, 23.865, 4581.9
  fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  fw, TSw, TDw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
