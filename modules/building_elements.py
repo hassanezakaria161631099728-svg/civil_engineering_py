@@ -5,19 +5,26 @@ from modules.io import matrix_to_table
 # stairs
 def stairs(story_height, vertical_step, horizontal_step):
  if 16 <=vertical_step <= 19 and 23 <= horizontal_step <= 32: # cm
-   statement= "vertical and horizontal step are within accepted segment "
+   print("vertical and horizontal step are within accepted segment")
  else:      
-   statement= "either vertical or horizontal step is out accepted segment or both"
+   print("either vertical or horizontal step is out accepted segment or both")
 
  stairs_height = story_height / 2 * 100 # converting to cm 
  n_stairs = math.ceil(stairs_height / vertical_step)
-
  stairs_length = n_stairs * horizontal_step
-
  slope_angle = math.atan(vertical_step / horizontal_step)
  slope_angle_deg = math.degrees(slope_angle)
- return (statement,story_height,stairs_height,vertical_step,n_stairs,
- horizontal_step,stairs_length,slope_angle,slope_angle_deg)
+ bearing_lenght = 110 #cm 
+ total_lenght2 = stairs_length / math.cos(slope_angle) + 2 * bearing_lenght
+ total_lenght3 = stairs_length  + 2 * bearing_lenght 
+ thickness_min = total_lenght2 / 30
+ thickness_max = total_lenght2 / 20
+ T = pd.DataFrame({"story_height": [story_height],"stairs_height": [stairs_height],
+ "vertical_step": [vertical_step],"n_stairs": [n_stairs],"horizontal_step": [horizontal_step],
+ "stairs_length": [stairs_length],"slope_angle": [slope_angle],"slope_angle_deg": [slope_angle_deg],
+ "total_lenght2": [total_lenght2],"total_lenght3": [total_lenght3],"thickness_min":[thickness_min],
+ "thickness_max":[thickness_max]})
+ return T
 
 def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor):
  Smaj = 1.1 * S #m
