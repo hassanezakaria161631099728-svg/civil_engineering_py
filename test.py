@@ -1,44 +1,41 @@
-# %%
-import pandas as pd
 import numpy as np
-import seaborn as sns
+import os
+x = np.array([0, 3.9, 7.75, 12.25, 18.8, 23.2])
+y = np.array([0, 3.7, 7.4, 13.8, 18.6])
+
+# Cartesian product
+nodes = np.array([[xi, yj] for yj in y for xi in x])
+print(nodes)
 import matplotlib.pyplot as plt
-# Create a sample dataset
-data = {
-    'Name': ['Alice', 'Bob', 'Charlie', 'David'],
-    'Age': [24, 30, 22, 35],
-    'Salary': [50000, 60000, 45000, 70000]
-}
 
-df = pd.DataFrame(data)
+size = 0.3  # column size
 
-# %%
-import numpy as np
-from shared_functions.FEM2D import FEM2D_frame
-# ----- NODES -----
-nodes = [
-    [0, 0],   # node 0
-    [0, 3],   # node 1
-    [5, 3],   # node 2
-    [5, 0]    # node 3
-]
-# ----- ELEMENT CONNECTIVITY -----
-elements = [
-    [0, 1],   # left column
-    [1, 2],   # top beam
-    [2, 3]    # right column
-]
-# ----- ELEMENT PROPERTIES -----
-elem_props = [
-    {'type':'beam', 'A':0.02, 'I':8e-5, 'E':210e6, 'q':0},   # element 0
-    {'type':'beam', 'A':0.02, 'I':8e-5, 'E':210e6, 'q':2},   # element 1 (top beam with load)
-    {'type':'beam', 'A':0.02, 'I':8e-5, 'E':210e6, 'q':0}    # element 2
-]
-# ----- POINT LOADS -----
-loads = []   # no point loads
-# ----- SUPPORTS -----
-constraints = [1, 9, 10]   # left roller: 1 ; right pinned: vertical DOF 9,10
-# ----- RUN FEM -----
-u, reactions, axial, shear, moments = FEM2D_frame(nodes, elements, elem_props, loads, constraints)
+fig, ax = plt.subplots()
+
+for xi, yj in nodes:
+    square = plt.Rectangle((xi - size/2, yj - size/2),
+                           size, size,
+                           edgecolor='black',
+                           facecolor='black')
+    ax.add_patch(square)
+
+# Horizontal segments
+for yj in y:
+    for i in range(len(x) - 1):
+        ax.plot([x[i], x[i+1]], [yj, yj], linestyle='--', linewidth=1)
+
+# Vertical segments
+for xi in x:
+    for j in range(len(y) - 1):
+        ax.plot([xi, xi], [y[j], y[j+1]], linestyle='--', linewidth=1)
+ax.set_aspect('equal')
+ax.set_xlim(min(x)-1, max(x)+1)
+ax.set_ylim(min(y)-1, max(y)+1)
+#ax.grid(True)
+# Full path
+filepath = os.path.join("tall building", "ground_level_XY2.png")
+# Save figure
+plt.savefig(filepath, dpi=300, bbox_inches='tight')
+plt.show()
 
 
