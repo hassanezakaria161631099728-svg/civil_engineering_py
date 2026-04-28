@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
-from modules.io import matrix_to_table
+from modules.io import matrix_to_table,matrices_to_tables2,exptxt
 # stairs
 def stairs(story_height, vertical_step, horizontal_step):
  if 16 <=vertical_step <= 19 and 23 <= horizontal_step <= 32: # cm
@@ -26,10 +26,9 @@ def stairs(story_height, vertical_step, horizontal_step):
  "thickness_max":[thickness_max]})
  return T
 
-def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor):
+def RC_column(fc28,fe,S,n):
  Smaj = 1.1 * S #m
- # NG = 1.1 * (n * G_current_floor + G_roof_top) * Smaj / 100 #converting Kg to KN 
- # NQ = (Q_roof_top + Q_current_floor * (1+0.9+0.8+0.7+0.6+(n-5)*0.5)+Q_ground_floor) * Smaj / 100 #KN
+ Q_current_floor,Q_roof_top,G_current_floor,G_roof_top = 150,100,665,787.6
  NQ = compute_NQ(n+1,Q_current_floor,Q_roof_top,Smaj) 
  NG = compute_NG(n+1,G_current_floor,G_roof_top,Smaj) 
  Nu = (1.35 * NG + 1.5 * NQ) / 1000 # converting KN to MN
@@ -40,14 +39,48 @@ def RC_column(fc28,fe,S,n,G_current_floor,G_roof_top,Q_roof_top,Q_current_floor)
  #gamma c is 1.5 and gamma s is 1.15 
  Bcmin = Nu / (0.3 * fc28)
  amin = Bcmin**0.5
- a = np.ceil(amin*20)/20
- Bc = a*a # we have a rectangular column
- Br = (a - 0.02)**2
+ a = np.ceil(amin*20)
+ Bc = a**2 # we have a rectangular column
+ Br = (a - 0.02)**0.5
  T = pd.DataFrame({"Smaj": Smaj.reshape(-1),"NG": NG.reshape(-1),"NQ": NQ.reshape(-1),
  "Nu": Nu.reshape(-1),"alpha": alpha.reshape(-1),"Brmin": Brmin.reshape(-1),
  "Bcmin": Bcmin.reshape(-1),"amin": amin.reshape(-1),"a": a.reshape(-1),
  "Bc": Bc.reshape(-1),"Br": Br.reshape(-1)})
  return T
+
+def RC_columns(x,y):
+ x = np.array([0, 3.9, 7.75, 12.25, 18.8, 23.2])
+ y = np.array([0, 3.7, 7.4, 13.8, 18.6])
+ n,p = len(x),len(y)
+ Lx,Ly,S = np.zeros((n)), np.zeros((p)), np.zeros((n,p))
+ i,j = np.arange(1, n-1),np.arange(1, p-1)
+ Lx[i] = x[i+1]-x[i-1]
+ Lx[0] = x[1]-x[0]
+ Lx[n-1] = x[n-1]-x[n-2]
+ Ly[j] = y[j+1]-y[j-1]
+ Ly[0] = y[1]-y[0]
+ Ly[p-1] = y[p-1]-y[p-2]
+ S = np.outer(Ly, Lx) / 4
+ n_floors,fc28,fe = 9, 30, 400
+ Smaj = S * 1.1 
+ GRT,GCF,QRT,QCF = 787.6, 665, 100, 150
+ NG = 1.1 * (GRT + GCF * n_floors) * Smaj / 100
+ if n_floors < 5: NQ = (QRT + n_floors * QCF) * Smaj / 100
+ else: NQ = (QRT + (4 + (n_floors-5)*0.5) * QCF) * Smaj / 100
+
+ Nu = (1.35 * NG + 1.5 * NQ) / 1000 # converting KN to MN
+ alpha = 0.85 / 1.2
+ Brmin = Nu / (alpha * (fc28 / (0.9 * 1.5) + 0.01 * fe / 1.15)) #m2
+ #gamma c is 1.5 and gamma s is 1.15 
+ Bcmin = Nu / (0.3 * fc28)
+ amin = Bcmin**0.5
+ a = np.ceil(amin*20) / 20
+ Bc = a**2 # we have a rectangular column
+ Br = (a - 0.02)**0.5
+ matrices = [S, Smaj, NG, NQ, Nu, Brmin, Bcmin, amin, a, Bc, Br] 
+ tables = matrices_to_tables2(matrices)
+ names = ["S","Smaj","NG","NQ","Nu","Brmin","Bcmin","amin","a","Bc","Br"]
+ return tables,names
 
 def RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d): #units mm and N
   ft28 = 0.06 * fc28 + 0.6 
