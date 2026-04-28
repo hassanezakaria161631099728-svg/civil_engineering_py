@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import (stairs,RC_column,RC_shear_force,shape_geometry_attributes,
+from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
 sectorial,masses1,dynamic1,dynamic2)
 from modules.FEM import generate_grid,plot_grid
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
@@ -13,29 +13,21 @@ def elements():
  story_height = 3.06 # m
  vertical_step = 18 # cm
  horizontal_step = 25 # cm
- (statement,story_height,stairs_height,vertical_step,n_stairs,
- horizontal_step,stairs_length,slope_angle,slope_angle_deg)=\
- stairs(story_height, vertical_step, horizontal_step)
- T1 = pd.DataFrame({"statement": [statement],"story_height": [story_height],"stairs_height": [stairs_height],
- "vertical_step": [vertical_step],"n_stairs": [n_stairs],"horizontal_step": [horizontal_step],
- "stairs_length": [stairs_length],"slope_angle": [slope_angle],"slope_angle_deg": [slope_angle_deg]})
+ T1 = stairs(story_height, vertical_step, horizontal_step)
  #reinforced concrete column
  # number of floors above the base level
  #in general case the base level isn't necessary the ground floor but the last underneath floor
  # the last floor under the surface of soil
  nSF = 9 # number of floors above the soil surface
  nUF = 0 # number of floors under the soil surface
- n = nSF + nUF  #total number of floors above the base level  
+ n = nSF + nUF  #total number of floors above the base level we add 1 the ground floor and we 
+ # remove the last underneath floor which is the base floor  
  fc28,fe = 30,400
- Lx,Ly= 4.5,4.5 
- S1 = Lx * Ly
- S2,S3 = S1/2, S1/4 
  # dead loads G and live loads Q
- GRT,GCF = 787,665
- QRT,QCF = 100,150
- T2 = RC_column(fc28,fe,S1,n,GCF,GRT,QRT,QCF)
- T3 = RC_column(fc28,fe,S2,n,GCF,GRT,QRT,QCF)
- T4 = RC_column(fc28,fe,S3,n,GCF,GRT,QRT,QCF)
+ x = np.array([0, 3.9, 7.75, 12.25, 18.8, 23.2])
+ y = np.array([0, 3.7, 7.4, 13.8, 18.6])
+ tables,names = RC_columns(x,y)
+ exptxt(tables, names, "tall building/RC_columns.txt", 12)
  #RC shear force units are in mm and N
  At,b,d,alpha = 452,250,500,0.85/1.2
  Vu_reduced = 179000
@@ -43,8 +35,8 @@ def elements():
  RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
  T5 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
  # export results
- tables = [T1,T2,T3,T4,T5]
- names = ["stairs","RC_column1","RC_column2","RC_column3","RC_shear_force"]
+ tables = [T1,T5]
+ names = ["stairs","RC_shear_force"]
  exptxt(tables, names, "tall building/elements.txt", 12)
 
 def geometry():
