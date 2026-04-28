@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 def export_tables_txt(tables, names, filename):
     
     with open(filename, "w") as f:
@@ -168,8 +171,6 @@ def read_tables_txt3(filename):
 
     return tables
 
-import pandas as pd
-
 def matrix_to_table(A):
     n = len(A)
 
@@ -181,6 +182,89 @@ def matrix_to_table(A):
     df = pd.DataFrame(A, index=rows, columns=cols)
 
     return df
+
+import pandas as pd
+
+def matrix_to_table2(A, row_prefix="row", col_prefix="col"):
+    n_rows = len(A)
+    n_cols = len(A[0])
+
+    rows = [f"{row_prefix}{i}" for i in range(1, n_rows + 1)]
+    cols = [f"{col_prefix}{j}" for j in range(1, n_cols + 1)]
+
+    return pd.DataFrame(A, index=rows, columns=cols)
+
+def matrix_to_table3(A, row_prefix="row", col_prefix="col"):
+
+    # Convert to list if it's numpy
+    A = list(A)
+
+    # Check if 1D
+    if not hasattr(A[0], "__len__"):
+        # Treat as single row
+        n_rows = 1
+        n_cols = len(A)
+        rows = [f"{row_prefix}1"]
+        cols = [f"{col_prefix}{j}" for j in range(1, n_cols + 1)]
+        return pd.DataFrame([A], index=rows, columns=cols)
+
+    # 2D case
+    n_rows = len(A)
+    n_cols = len(A[0])
+
+    rows = [f"{row_prefix}{i}" for i in range(1, n_rows + 1)]
+    cols = [f"{col_prefix}{j}" for j in range(1, n_cols + 1)]
+
+    return pd.DataFrame(A, index=rows, columns=cols)
+
+def matrices_to_tables(matrices):
+    tables = []
+
+    for A in enumerate(matrices):
+        df = matrix_to_table2(A)
+        tables.append(df)
+
+    return tables
+
+def matrices_to_tables2(matrices):
+    tables = []
+
+    for k, A in enumerate(matrices):
+        n_rows, n_cols = A.shape
+
+        rows = [f"y{j}" for j in range(n_rows)]
+        cols = [f"x{i}" for i in range(n_cols)]
+
+        df = pd.DataFrame(A, index=rows, columns=cols)
+        df.name = f"table_{k+1}"  # optional label
+
+        tables.append(df)
+
+    return tables
+
+def export_matrices_to_txt(matrices, names, filename="results.txt", x=None, y=None):
+    if len(matrices) != len(names):
+        raise ValueError("Number of matrices must match number of names")
+
+    with open(filename, "w") as f:
+
+        for A, name in zip(matrices, names):
+
+            f.write("="*60 + "\n")
+            f.write(f"{name}\n")
+            f.write("="*60 + "\n")
+
+            # Convert to DataFrame
+            df = pd.DataFrame(A)
+
+            # Apply coordinate labels if provided
+            if x is not None and y is not None:
+                df.columns = [f"x={xi:.2f}" for xi in x]
+                df.index = [f"y={yj:.2f}" for yj in y]
+
+            # Write table
+            f.write(df.to_string(float_format="%.3f"))
+            f.write("\n\n")
 
 def export_matrices_txt(matrices, names, filename):
 
