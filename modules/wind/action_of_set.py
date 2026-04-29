@@ -29,7 +29,7 @@ def xyz_wall(b,d,sd2,Lx,Ly,h,h_roof,bt,bt2) -> Tuple[np.ndarray, np.ndarray, np.
  else:
   raise ValueError("sd2 must be >= 0")
 # now for z (vertical) coordinates of pressure points
- if bt == "flat roof":
+ if bt == "flat_roof":
         if sd2 == 0:#cw=[D,E]
          z=[z_flat_roof[2],z_flat_roof[2]]         
         elif sd2 > 0:#cw=[D1,D2,E] 
@@ -61,7 +61,7 @@ def xyz_roof(e,b,d,bt,bt2,Lx,Ly,h) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
  per=[e/8,b/2,b-e/8]  # f1, g, f2
 # parallel direction
  par=[e/20,(e/2-e/10)/2+e/10,(d-e/2)/2+e/2]  # f1, g, f2/h/I
- if bt == "flat roof":
+ if bt == "flat_roof":
         if d < e / 2:
          per = [per[0], per[1], per[2], per[1]]  # f1 g f2 h
          par[1] = d - e / 10
@@ -92,7 +92,7 @@ def xyz_roof(e,b,d,bt,bt2,Lx,Ly,h) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
                        per[0], per[1], per[2], per[1], per[1], per[1]]
                 par = [par[0], par[0], par[0], par[1], par[2], par[3],
                        par[0], par[0], par[0], par[1], par[2], par[3]]
-        else: raise ValueError("unknown roof type bt2")
+        else: raise ValueError(f"unknown roof type: {bt2}")
  else:
   raise ValueError(f"Unknown roof type: {bt}")
     # orientation
@@ -152,7 +152,7 @@ def reactions(k,bt,bt2,ba,ed,Fwehor,Fwi1hor,Fwi2hor,Fwez,Fwi1z,Fwi2z,b,srt,x,y,z
     Rz2 = np.sum(Rz2i[ed - 1:])
     horRz2 = np.sum(Rzhori2[ed - 1:]) / Rz2 
     # --- Flat roof case ---
-    if bt == "flat roof": # we work according to eurocode -0.3 +0.2
+    if bt == "flat_roof": # we work according to eurocode -0.3 +0.2
         sI = srt[3]  # MATLAB srt(4)
         if sI > 0:
             Rz3 = np.sum(Rz1i[ed - 1:k - 2]) + Rz1i[k - 1]

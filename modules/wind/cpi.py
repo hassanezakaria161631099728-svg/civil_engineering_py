@@ -20,7 +20,7 @@ def openings(cas: str) -> pd.DataFrame:
 def cpi(bt,bt2,ba,b,d,n,h):
     cpi1 = np.zeros(n)
     cpi2 = np.zeros(n)
-    if bt == "flat roof":
+    if bt == "flat_roof":
         print("on a flat roof tall building eurocode ipf1=-0.3 ipf2=+0.2")
         cpi1[:] = -0.3
         cpi2[:] = 0.2

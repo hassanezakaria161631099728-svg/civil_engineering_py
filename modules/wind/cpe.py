@@ -26,25 +26,29 @@ def s_cpe_wall_array(sw,cpew):
         sw2 = np.array([sw[0], sw[2], sw[3], sw[4], sw[5]])
         cw = ["D", "E", "A", "B", "C"]
     elif sd2 == 0 and sc == 0:  # Case 4
-        cpew2 = np.array([cpew[0], -0.3, cpew[2], cpew[3]])
+        cpew2 = np.array([cpew[0], -0.3, cpew[3], cpew[4]])
         sw2 = np.array([sw[0], sw[2], sw[3], sw[4]])
         cw = ["D", "E", "A", "B"]
+    elif sd2 > 0 and sc == 0:  # Case 4
+        cpew2 = np.array([cpew[0], cpew[1], -0.3, cpew[3], cpew[4]])
+        sw2 = np.array([sw[0], sw[1], sw[2], sw[3], sw[4]])
+        cw = ["D1", "D2", "E", "A", "B"]
     elif sd2 > 0 and sc > 0:  # Case 6
-        cpew2 = np.array([cpew[0], cpew[1], -0.3, cpew[2], cpew[3], -0.5])
+        cpew2 = np.array([cpew[0], cpew[1], -0.3, cpew[3], cpew[4], -0.5])
         sw2 = sw
         cw = ["D1", "D2", "E", "A", "B", "C"]
     else:
-        raise ValueError("Unexpected surface configuration in vent_surfaces_cpe_mur")
+        raise ValueError("Unexpected surface configuration in wind_surfaces_cpe_mur")
     return cw,sw2,cpew2
 
 def interpolation(cpe1,cpe2,bt,bt2,h1,h2,Lx):
-    if bt == "flat roof":
+    if bt == "flat_roof":
         h = h1
         hacr = 0.6
         cpe = (cpe2 - cpe1) / 0.05 * (hacr / h) + cpe1    
     elif bt == "hangar":
         L = Lx        
-        if bt2 == "gable roof":
+        if bt2 == "gable_roof":
             alpha = math.degrees(math.atan((h1 - h2) / (L / 2)))
             cpe = (cpe2 - cpe1) / 10 * (alpha - 5) + cpe1    
         else:
@@ -56,7 +60,7 @@ def interpolation(cpe1,cpe2,bt,bt2,h1,h2,Lx):
 def roof(ba,bt,bt2,b,h1,h2):
     Lx = ba["Lx_m"].iloc[0]  
     Ly = ba["Ly_m"].iloc[0]  
-    if bt=="flat roof":
+    if bt=="flat_roof":
      Troof=flat_roof(Lx,bt,bt2,h1,h2)
     elif bt=="hangar":
         L = Lx  
@@ -136,7 +140,7 @@ def roof_90deg(h1,h2,Lx):
     cpe = np.zeros(n)    
     # Roof types
     bt = "hangar"
-    bt2 = "gable roof"    
+    bt2 = "gable_roof"    
     # Compute interpolated cpe values
     for i in range(n):
         cpe[i] =interpolation(K[i], V[i],bt,bt2,h1,h2,Lx)    
@@ -171,7 +175,7 @@ def s_cpe_roof_array(Troof,b,ba,srt,bt,bt2):
     n = Troof.shape[1]    
     # Placeholder for depf (must be defined separately)
     cpen=cpe_from_s(n,Troof,srt)      
-    if bt == "flat roof":
+    if bt == "flat_roof":
         sI = srt[3]  # MATLAB index (4th element)
         if sI == 0:
             cpe = [cpen[0], cpen[1], cpen[0], cpen[2]]

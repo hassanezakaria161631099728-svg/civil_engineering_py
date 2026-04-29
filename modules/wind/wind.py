@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 from typing import Any, Tuple
-# Pull helpers directly from vent/__init__.py
+# Pull helpers directly from wind/__init__.py
 from .cpe import (wall,roof,s_cpe_wall_array,s_cpe_roof_array,cpe_from_s)
 from .cpi import cpi               # if cpi is its own file/module
 from .action_of_set import action_of_set
@@ -57,7 +57,7 @@ def wind(ba,Lx,Ly,direction,geo,wzs,gcs) -> Tuple[Any, Any, Any, Any, Any, Any, 
  wi1=wewi(cpi1,sw,qpze1,qpze2)
  wi2=wewi(cpi2,sw,qpze1,qpze2)
 # --- build T3 table depending on roof type ---
- if bt == "flat roof":
+ if bt == "flat_roof":
   T3 = pd.DataFrame({"c": c,"epf": cpe,"ipf1": cpi1,"ipf2": cpi2,"we": we,"wi1": wi1,"wi2": wi2})
  elif bt == "hangar":
   T3 = pd.DataFrame({"c": c,"epf": cpe,"ipf1": cpi1,"we": we,"wi1": wi1})
@@ -99,13 +99,15 @@ def pression_dynamique_de_pointe(b,d,geo,ba,wzs,gcs):
     Twz = wzs[wzs.iloc[:, 0] == wz].iloc[0]
     qref = Twz.iloc[1]
     # building height depending on type
+    ba["ground_floor_height_m"] = ba["ground_floor_height_m"].astype(float)
+    ground_floor_height = ba["ground_floor_height_m"].iloc[0]
     ba["floor_height_m"] = ba["floor_height_m"].astype(float)
     floor_height = ba["floor_height_m"].iloc[0]
     ba["n_floors"] = ba["n_floors"].astype(float)
     number_floors = ba["n_floors"].iloc[0]
     ba["hp_m"] = ba["hp_m"].astype(float)
     hp=ba["hp_m"].iloc[0] 
-    h=floor_height*number_floors+hp
+    h=ground_floor_height+floor_height*number_floors+hp
     # effective dimension
     e=min(2*h,b)
     # determine ze

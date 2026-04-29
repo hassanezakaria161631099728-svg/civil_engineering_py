@@ -1,11 +1,12 @@
 import numpy as np
 
 def wall_perpendicular(ba,b):
+    g_f_height = ba["ground_floor_height_m"].iloc[0]
     f_height = ba["floor_height_m"].iloc[0]
     hp=ba["hp_m"].iloc[0]
     n_floors = ba["n_floors"].iloc[0]
-    h1 = f_height*n_floors+hp
-    h2 = f_height*n_floors
+    h1 = g_f_height+f_height*n_floors+hp
+    h2 = g_f_height+f_height*n_floors
     Lx=ba["Lx_m"].iloc[0]# symbole L if hangar
     Ly=ba["Ly_m"].iloc[0]# symbole T if hangar
     if h1 <= b:
@@ -27,7 +28,7 @@ def wall_perpendicular(ba,b):
 def wall_parallel(h1,h2,b,d,bt,e):
     # paroi verticale
     cd = 1 if h1 < 4 * b else 0
-    if bt == 'flat roof':
+    if bt == 'flat_roof':
         h = h1
     elif bt == 'hangar':
         h = h2
@@ -45,7 +46,7 @@ def wall_parallel(h1,h2,b,d,bt,e):
 def roof_list(b,d,ba,bt,e):
     sf = (e / 4) * (e / 10)  # m^2
     sg = (b - e / 2) * e / 10  # m^2
-    if bt == 'flat roof':
+    if bt == 'flat_roof':
         if d < e / 2:
          sh = b * (d - e / 10)  # m^2
          sI = 0
@@ -86,7 +87,7 @@ def roof_list(b,d,ba,bt,e):
     return sf,sg,sh,sJ,sI
 
 def roof_array(sf,sg,sh,sJ,sI,bt,bt2,b,ba,h1,h2):
-    if bt == 'flat roof':
+    if bt == 'flat_roof':
         st = np.array([sf, sg, sh, sI, sI])
         ct = ['F-', 'G-', 'H-', 'I-', 'I+']
     elif bt == 'hangar':
