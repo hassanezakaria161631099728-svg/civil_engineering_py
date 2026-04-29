@@ -4,6 +4,7 @@ import pandas as pd
 from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
 sectorial,masses1,dynamic1,dynamic2)
 from modules.FEM import generate_grid,plot_grid
+from modules.wind.wind import wind,dimensions
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
 
 def elements():
@@ -125,6 +126,27 @@ def plot():
  nodes,_=generate_grid(nx, ny, Lx, Ly)
  plot_grid(nodes, nx, ny, "tall building", "ground_level_XY.png")
 
+def wind_analysis():
+ print("Running case 6: wind_analysis")
+ # your code here
+ #python tall_building.py wind_analysis
+ eurocode = read_tables_txt3("tall building/eurocode.txt")
+ wind_entry = read_tables_txt3("tall building/wind_entry.txt")
+ ba = wind_entry["building_attributes"]
+ Lx = ba["Lx_m"].iloc[0]
+ Ly = ba["Ly_m"].iloc[0]
+ direction1='wind1'
+ direction2='wind2'
+ geo = wind_entry["geography_attributes"]
+ wzs = eurocode["wind_zones"]
+ gcs = eurocode["ground_categories"]
+ T1,T2,T3,T4,T5,Troof1,Twall=wind(ba,Lx,Ly,direction1,geo,wzs,gcs)
+ T6,T7,T8,T9,T10,Troof2,_=wind(ba,Lx,Ly,direction2,geo,wzs,gcs)
+ Tables = [T1,T2,T3,T4,T5,Troof1,Twall,T6,T7,T8,T9,T10,Troof2]
+ Names = ["T1", "T2", "T3", "T4", "T5", "Troof1", "Twall",
+ "T6", "T7", "T8", "T9", "T10", "Troof2"]
+ exptxt(Tables, Names, "tall building/wind.txt", 12)
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide a case: dynamic, columns,geometry,test")
@@ -141,6 +163,8 @@ if __name__ == "__main__":
             dynamic()
         elif command == "plot":
             plot()
+        elif command == "wind_analysis":
+            wind_analysis()
         else:
             print("Unknown case")
             
