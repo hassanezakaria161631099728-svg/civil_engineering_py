@@ -937,10 +937,11 @@ def FEM2D_frame(nodes, elements, elem_props, loads, constraints, default_E=210e6
         # Here we treat both: total local transverse load = q_local + (-C * w_global)
         q_from_w =  -C * w_global
         q_total = q_local + q_from_w
-        etype = prop.get('type', 'beam')
+        #etype = prop.get('type', 'beam')
         # stiffness
         k_ax = E * A / L
-        if I > 0 and etype == 'beam':
+#        if I > 0 and etype == 'beam':
+        if I > 0 :
             k_b11 = 12 * E * I / L**3
             k_b12 = 6 * E * I / L**2
             k_b22 = 4 * E * I / L
@@ -1009,7 +1010,8 @@ def FEM2D_frame(nodes, elements, elem_props, loads, constraints, default_E=210e6
         q_total = q_local + q_from_w
         # rebuild local stiffness
         k_ax = E * A / L
-        if I > 0 and prop.get('type', 'beam') == 'beam':
+#        if I > 0 and prop.get('type', 'beam') == 'beam':
+        if I > 0 :
             k_b11 = 12 * E * I / L**3
             k_b12 = 6 * E * I / L**2
             k_b22 = 4 * E * I / L
@@ -1080,7 +1082,28 @@ def FEM2D_frame(nodes, elements, elem_props, loads, constraints, default_E=210e6
 
     return u, reactions, N_vec, V_vec, M_vec
 
+def prepare_fem_inputs(elements):
+    """
+    Convert your custom element format into:
+    - elements array
+    - elem_props list
+    """
+    elem_connectivity = []
+    elem_props = []
 
+    for e in elements:
+        elem_connectivity.append(e["nodes"])
+
+        elem_props.append({
+            "type": e.get("type", "beam"),
+            "A": e.get("A", 1e-6),
+            "I": e.get("I", 0.0),
+            "E": e.get("E", 210e6),
+            "w": e.get("w", 0.0),
+            "q": e.get("q", 0.0)
+        })
+
+    return np.array(elem_connectivity, dtype=int), elem_props
 
 def beam_internal_forces(
     L,
@@ -1305,4 +1328,145 @@ def plot_grid_elevation_view_YZ(nodes, elements, ny, nz):
     ax.set_ylabel("Z")
     ax.grid(True)
     plt.show()
-    
+
+def plot_structure(nodes,elements,constraints,show_node_ids,title,folder,filename):
+    fig, ax = plt.subplots()
+
+    nodes = np.asarray(nodes)
+    n_nodes = len(nodes)
+
+    # ----------------------------------
+    # 1. Build constraint map
+    # ----------------------------------
+    constraint_map = {i: [0, 0, 0] for i in range(n_nodes)}
+
+    for dof in constraints:
+        node = dof // 3
+        local_dof = dof % 3
+        constraint_map[node][local_dof] = 1
+
+    # ----------------------------------
+    # 2. Plot elements
+    # ----------------------------------
+    for e in elements:
+        n1, n2 = e["nodes"]
+        x1, z1 = nodes[n1]
+        x2, z2 = nodes[n2]
+
+        if e["type"] == "beam":
+            color = "blue"
+        elif e["type"] == "column":
+            color = "gold"
+        else:
+            color = "black"
+
+        ax.plot([x1, x2], [z1, z2], color=color, linewidth=2)
+
+        # ----------------------------------
+        # Distributed load visualization
+        # ----------------------------------
+        w = e.get("w", 0)
+        if abs(w) > 1e-6:
+         n_arrows = 7
+
+         for k in range(n_arrows):
+             t = (k + 1) / (n_arrows + 1)  # avoid endpoints
+
+        # position along element
+             xk = x1 + t * (x2 - x1)
+             zk = z1 + t * (z2 - z1)
+
+        # arrow direction (global vertical downward)
+             dx = 0
+             dz = -0.6  # constant visual size
+
+             ax.arrow(
+              xk, zk,
+              dx, dz,
+              head_width=0.15,
+              head_length=0.25,
+              fc='red',
+              ec='red',
+              length_includes_head=True
+         )
+
+    # ----------------------------------
+    # 3. Plot nodes + constraints
+    # ----------------------------------
+    for i, (x, z) in enumerate(nodes):
+        ux, uz, rot = constraint_map[i]
+
+        # classification
+        if ux == 1 and uz == 1 and rot == 1:
+            ax.scatter(x, z, color="purple", marker="s", s=80)  # fixed
+        elif ux == 1 and uz == 1:
+            ax.scatter(x, z, color="red", marker="o", s=60)
+        elif ux == 1:
+            ax.scatter(x, z, color="green", marker="o", s=60)
+        elif uz == 1:
+            ax.scatter(x, z, color="brown", marker="o", s=60)
+        else:
+            ax.scatter(x, z, color="black", marker="o", s=40)
+
+        if show_node_ids:
+            ax.text(x, z, str(i), fontsize=8, ha="right")
+
+    # ----------------------------------
+    # 4. Formatting
+    # ----------------------------------
+    ax.set_aspect("equal")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Z")
+    ax.set_title(title)
+    ax.grid(True)
+    # Full path
+    filepath = os.path.join(folder, filename)
+    # Save figure
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+
+    plt.show()
+
+def generate_elements2(x, z, A_beam, I_beam, A_col, I_col, E, q_beam=0, q_col=0):
+    elements = []
+
+    nx = len(x)
+    nz = len(z)
+
+    def node_id(i, j):
+        return j * nx + i
+
+    # ----------------------------------
+    # 1. Columns (vertical elements)
+    # ----------------------------------
+    for i in range(nx):
+        for j in range(nz - 1):
+            n1 = node_id(i, j)
+            n2 = node_id(i, j + 1)
+
+            elements.append({
+                "nodes": [n1, n2],
+                "type": "column",
+                "A": A_col,
+                "I": I_col,
+                "E": E,
+                "w": q_col
+            })
+
+    # ----------------------------------
+    # 2. Beams (horizontal elements)
+    # ----------------------------------
+    for j in range(1, nz):  # skip ground if needed
+        for i in range(nx - 1):
+            n1 = node_id(i, j)
+            n2 = node_id(i + 1, j)
+
+            elements.append({
+                "nodes": [n1, n2],
+                "type": "beam",
+                "A": A_beam,
+                "I": I_beam,
+                "E": E,
+                "w": q_beam
+            })
+
+    return elements    
