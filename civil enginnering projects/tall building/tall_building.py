@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
 sectorial,masses1,dynamic1,dynamic2)
-from modules.FEM import generate_grid,plot_grid
+from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
+plot_structure)
 from modules.wind.wind import wind,dimensions
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
 
@@ -15,20 +16,11 @@ def elements():
  vertical_step = 18 # cm
  horizontal_step = 25 # cm
  T1 = stairs(story_height, vertical_step, horizontal_step)
- #reinforced concrete column
- # number of floors above the base level
- #in general case the base level isn't necessary the ground floor but the last underneath floor
- # the last floor under the surface of soil
- nSF = 9 # number of floors above the soil surface
- nUF = 0 # number of floors under the soil surface
- n = nSF + nUF  #total number of floors above the base level we add 1 the ground floor and we 
- # remove the last underneath floor which is the base floor  
+ #reinforced concrete columns
  fc28,fe = 30,400
- # dead loads G and live loads Q
- x = np.array([0, 3.9, 7.75, 12.25, 18.8, 23.2])
- y = np.array([0, 3.7, 7.4, 13.8, 18.6])
- tables,names = RC_columns(x,y)
- exptxt(tables, names, "tall building/RC_columns.txt", 12)
+ x = np.array([0, 4, 4*2, 4*3, 4*4, 4*5, 4*6, 4*7])
+ y = np.array([0, 5, 5*2, 5*3, 5*4])
+ tables1,names1 = RC_columns(x,y)
  #RC shear force units are in mm and N
  At,b,d,alpha = 452,250,500,0.85/1.2
  Vu_reduced = 179000
@@ -36,15 +28,16 @@ def elements():
  RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
  T5 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
  # export results
- tables = [T1,T5]
- names = ["stairs","RC_shear_force"]
+ tables2 = [T1,T5]
+ names2 = ["stairs","RC_shear_force"]
+ tables, names = tables1 + tables2, names1 + names2
  exptxt(tables, names, "tall building/elements.txt", 12)
 
 def geometry():
  print("Running case 2: geometry_attributes")
  # your code here
  #shape1
- a,Lx,Ly,e = 0.45,4.5,4.5,0.2
+ a,Lx,Ly,e = 0.3,4,4,0.2
  a1 = [a, Lx-a,  a,    e, a]
  b1 = [a,    e,  a, Ly-a, a]
  xg1 = [a/2, (Lx-a)/2+a, Lx+a/2,        a/2,      a/2]
@@ -56,7 +49,7 @@ def geometry():
  xg1g = T_scalar1["xg_global"].iloc[0]
  yg1g = T_scalar1["yg_global"].iloc[0]
 
- Lbx,Lby = 22.5, 22.5 
+ Lbx,Lby = 28, 20 
  # X
  X = [xg1g, Lbx-xg1g, xg1g, Lbx-xg1g]
 
@@ -74,15 +67,15 @@ def masses():
  print("running case 3: masses")
  #your code here
  geometry = read_tables_txt3("tall building/geometry.txt")
- Lx,Ly = 22.5,22.5 #building dimension x y
+ Lx,Ly = 28,20 #building dimension x y
  h_story,h_beam,b_beam = 3.06,0.4,0.3 
- nx,ny = 5,5
+ nx,ny = 7,4 #number of spans on x and y
  CD = 2.5 #concrete density
  # roof top barricade
  #RC columns
- n_columns,a_column = 36,0.45
+ a_column = 0.55
  T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,T_tiles,m_RT,m_BLF = \
- masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam)
+ masses1(geometry,Lx,Ly,h_story,a_column,CD,nx,ny,b_beam,h_beam)
  print(m_RT)
  print(m_BLF)
  #export results
@@ -96,7 +89,7 @@ def dynamic():
  # your code here
  n = 9 #number of floors above the base floor
  M1, M2, M3 = 549.56, 549.56, 524.36 #masses
- Lx, Ly = 22.5, 22.5
+ Lx, Ly = 28, 20
  # SA and mass matrices and Elasticity module
  h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
@@ -122,9 +115,35 @@ def dynamic():
 def plot():
  print("Running case 2: building upper vue ground level XY")
  # your code here
- nx,ny,Lx,Ly = 6,6,4.5,4.5
- nodes,_=generate_grid(nx, ny, Lx, Ly)
- plot_grid(nodes, nx, ny, "tall building", "ground_level_XY.png")
+ x = np.array([0, 4, 4*2, 4*3, 4*4, 4*5, 4*6, 4*7])
+ y = np.array([0, 5, 5*2, 5*3, 5*4])
+ n, h_base, h_story = 9, 3.06, 3.06
+ z = generate_Z(n+2, h_base, h_story)
+ # Cartesian product
+ nodes_xy = np.array([[xi, zj] for zj in y for xi in x])
+ nodes_xz = np.array([[xi, zj] for zj in z for xi in x])
+ nodes_yz = np.array([[xi, zj] for zj in z for xi in y])
+ A_beam = 0.3 * 0.5
+ I_beam = (0.3 * 0.5**3) / 12
+ A_col = 0.4 * 0.4
+ I_col = (0.4 * 0.4**3) / 12
+ E = 30e9  # Pa
+ elements_xz = generate_elements2(x, z, A_beam, I_beam, A_col, I_col, E, q_beam=0)
+ elements_yz = generate_elements2(y, z, A_beam, I_beam, A_col, I_col, E, q_beam=0)
+ show_node_ids = True
+ nodal_loads = []
+ constraints = []
+ nx = len(x)
+ for i in range(nx):
+    node = i  # first row (z=0)
+    constraints.extend([3*node, 3*node+1, 3*node+2])
+ title1, title2, title3, folder = "view_from_above_XY_Z=0", "elevation_view_XZ", "elevation_view_YZ", "tall building"  
+ filename1, filename2, filename3 = "ground_level_XY2.png", "elevation_view_XZ.png", "elevation_view_YZ.png"
+ elem_conn_xz, elem_props_xz = prepare_fem_inputs(elements_xz)
+ elem_conn_yz, elem_props_yz = prepare_fem_inputs(elements_yz)
+ plot_from_above_view(nodes_xy, x, y, folder, filename1, title1, "X", "Y")
+ plot_structure(nodes_xz,elements_xz,constraints,show_node_ids,folder,filename2,title2,"X","Z")
+ plot_structure(nodes_yz,elements_yz,constraints,show_node_ids,folder,filename3,title3,"Y","Z")
 
 def wind_analysis():
  print("Running case 6: wind_analysis")
