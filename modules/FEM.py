@@ -1329,7 +1329,7 @@ def plot_grid_elevation_view_YZ(nodes, elements, ny, nz):
     ax.grid(True)
     plt.show()
 
-def plot_structure(nodes,elements,constraints,show_node_ids,title,folder,filename):
+def plot_structure(nodes,elements,constraints,show_node_ids,folder,filename,title,horizontal_axis,vertical_axis):
     fig, ax = plt.subplots()
 
     nodes = np.asarray(nodes)
@@ -1415,8 +1415,9 @@ def plot_structure(nodes,elements,constraints,show_node_ids,title,folder,filenam
     # 4. Formatting
     # ----------------------------------
     ax.set_aspect("equal")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Z")
+    #horizontal_axis, vertical_axis = "X", "Y"
+    ax.set_xlabel(horizontal_axis)
+    ax.set_ylabel(vertical_axis)
     ax.set_title(title)
     ax.grid(True)
     # Full path
@@ -1470,3 +1471,45 @@ def generate_elements2(x, z, A_beam, I_beam, A_col, I_col, E, q_beam=0, q_col=0)
             })
 
     return elements    
+
+def plot_from_above_view(nodes, x, y, folder, filename, title, horizontal_axis, vertical_axis):
+ size = 0.3  # column size
+
+ fig, ax = plt.subplots()
+
+ for xi, yj in nodes:
+    square = plt.Rectangle((xi - size/2, yj - size/2),
+                           size, size,
+                           edgecolor='black',
+                           facecolor='black')
+    ax.add_patch(square)
+
+ # Horizontal segments
+ for yj in y:
+    for i in range(len(x) - 1):
+        ax.plot([x[i], x[i+1]], [yj, yj], linestyle='--', linewidth=1, color = 'grey')
+
+ # Vertical segments
+ for xi in x:
+    for j in range(len(y) - 1):
+        ax.plot([xi, xi], [y[j], y[j+1]], linestyle='--', linewidth=1, color = 'grey')
+ ax.set_aspect('equal')
+ ax.set_xlim(min(x)-1, max(x)+1)
+ ax.set_ylim(min(y)-1, max(y)+1)
+ # horizontal_axis, vertical_axis = "X", "Y" for example
+ ax.set_xlabel(horizontal_axis)
+ ax.set_ylabel(vertical_axis)
+ ax.set_title(title)
+ ax.grid(True)
+ # Full path
+ filepath = os.path.join(folder, filename)
+ # Save figure
+ plt.savefig(filepath, dpi=300, bbox_inches='tight')
+ plt.show()
+
+def generate_Z(n, h_base, h_story):
+ k = np.arange(n)
+ Z = np.zeros(n)
+ Z[1:] = h_base + (k[1:] - 1) * h_story
+ Z[0] = 0
+ return Z   

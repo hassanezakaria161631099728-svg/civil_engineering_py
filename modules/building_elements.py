@@ -49,8 +49,6 @@ def RC_column(fc28,fe,S,n):
  return T
 
 def RC_columns(x,y):
- x = np.array([0, 3.9, 7.75, 12.25, 18.8, 23.2])
- y = np.array([0, 3.7, 7.4, 13.8, 18.6])
  n,p = len(x),len(y)
  Lx,Ly,S = np.zeros((n)), np.zeros((p)), np.zeros((n,p))
  i,j = np.arange(1, n-1),np.arange(1, p-1)
@@ -193,7 +191,7 @@ def sectorial(T_scalar1,X,Y):
 
  return T_sectorial, T_sectorial_scalar
 
-def masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam):
+def masses1(geometry,Lx,Ly,h_story,a_column,CD,nx,ny,b_beam,h_beam):
  geometry_attributes = geometry["sectorial_attributes_scalars"]
  geometry_attributes["A"] = geometry_attributes["A"].astype(float)
  A_RC_walls = geometry_attributes["A"].iloc[0]
@@ -208,6 +206,7 @@ def masses1(geometry,Lx,Ly,h_story,a_column,n_columns,CD,nx,ny,b_beam,h_beam):
  m_RC_walls = v_RC_walls * CD           
  T_RC_walls = pd.DataFrame({"height_m": [h_RC_wall],"volume_m3": [v_RC_walls],"m_tonnes": [m_RC_walls]})
  # RC columns
+ n_columns = (nx+1) * (ny+1)
  S_column = a_column * a_column
  m_columns = h_story * n_columns * S_column *  CD 
  T_columns = pd.DataFrame({"h_story": [h_story],"a_m": [a_column],"S_m2": [S_column],
