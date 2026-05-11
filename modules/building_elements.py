@@ -280,3 +280,17 @@ def dynamic2(h,E,I,SA,M):
  Teigen_vectors = matrix_to_table(eigen_vectors)
  periods = eigen_values ** 0.5 * 2 * 3.14
  return f, TS, TD, eigen_values, Teigen_vectors, periods
+
+def static_equivalent(T,T_imperial,T1,T2,T3,T4):
+ if T >= 1.3 * T_imperial: T = 1.3 * T_imperial 
+ else: T = T
+ A,I,S,R,Q = 0.3,1,1.2,4.5,1
+ #spectrum
+ if T > 0 and T < T1: sag = A * I * S * (2/3 + (T/T2) * (2.5 * Q/R - 2/3))
+ elif T > T1 and T < T2: sag = A * I * S * 2.5 * Q / R 
+ elif T > T2 and T < T3: sag = A * I * S * 2.5 * Q / R * T2 / T 
+ elif T > T3 and T < T4: sag = A * I * S * 2.5 * Q / R * T2 * T3 / T ** 2
+ else: raise ValueError("T is either negative or bigger than T4")
+ return sag
+
+ 
