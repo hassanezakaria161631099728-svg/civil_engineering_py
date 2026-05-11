@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
-sectorial,masses1,dynamic1,dynamic2)
+sectorial,masses1,dynamic1,dynamic2,static_equivalent)
 from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
 plot_structure)
 from modules.wind.wind import wind,dimensions
@@ -112,6 +112,19 @@ def dynamic():
  names = ["periods_secondes","scalars"]
  exptxt(tables, names, "tall building/dynamic2.txt", 12)
 
+def seismic():
+ print("Running case : seismic analysis")
+ # your code here
+ T1,T2,T3,T4 = 0.1,0.5,2,4 #APR24 table3.4 
+ h_building = 30.6  
+ T_imperial = 0.05 * h_building ** 0.75
+ Tx,Ty = 0.914,1.021
+ sagx = static_equivalent(Tx,T_imperial,T1,T2,T3,T4)
+ sagy = static_equivalent(Ty,T_imperial,T1,T2,T3,T4)
+ print(T_imperial)
+ print(sagx)
+ print(sagy)
+
 def plot():
  print("Running case 2: building upper vue ground level XY")
  # your code here
@@ -182,6 +195,8 @@ if __name__ == "__main__":
             dynamic()
         elif command == "plot":
             plot()
+        elif command == "seismic":
+            seismic()
         elif command == "wind_analysis":
             wind_analysis()
         else:
