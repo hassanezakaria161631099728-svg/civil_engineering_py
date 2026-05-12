@@ -2,11 +2,11 @@ import sys
 import numpy as np
 import pandas as pd
 from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
-sectorial,masses1,dynamic1,dynamic2,static_equivalent)
+sectorial,masses1,dynamic1,dynamic2,seismic)
 from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
 plot_structure)
 from modules.wind.wind import wind,dimensions
-from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3
+from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3,matrices_to_tables2
 
 def elements():
  print("Running case 1: elements")
@@ -94,36 +94,39 @@ def dynamic():
  h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
  case = "with bricks"
- SA, M, MR, E, TSA, TM, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
+ SA, M, M_vec, MR, E, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
  Ix, Iy, Iw = 23.865, 23.865, 4581.9
- fx, TSx, TDx, eigen_valuesx, Teigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
- fy, TSy, TDy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
- fw, TSw, TDw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
- names = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw"]
- matrices = [TSA, TM, TSx, TDx, Teigen_vectors, TSy, TDy, MR, TSw, TDw]
- #float_format = "{:.3f}".format
- export_matrices_txt2(matrices, names, "tall building/dynamic.txt")
+ fx, Sx, Dx, eigen_valuesx, eigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
+ fy, Sy, Dy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
+ fw, Sw, Dw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
+ names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw"]
+ matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw]
+ tables1 = matrices_to_tables2(matrices)
  T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,"eigen_valuesw": eigen_valuesw,
  "periods_x_s": periods_x,"periods_y_s": periods_y,"periods_w_s": periods_w})
  T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
  "T_imperial":[T_imperial]})
+ tables2 = [T,T2]
+ names2 = ["periods_secondes","scalars"]
+ period1,period2,period3 = 0.15,0.6,2 #APR24 table3.4 
+ h_building = h * (n+1)  
+ imperial_period = 0.05 * h_building ** 0.75
+ #response spectrum
+ building_weight = 5 * 10e4
+ beta = eigen_vectors @ M_vec / (eigen_vectors**2 @ M_vec)
+ SadT0x, Vx, Fx = seismic(periods_x,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
+ SadT0y, Vy, Fy = seismic(periods_y,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
+ T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": Vx,"Vy": Vy})
+ print(T3)
+ #beta = beta.reshape(1, -1)      # (1, n_modes)
+ #SadT0x    = SadT0x.reshape(1, -1)       # (1, n_modes)
+ #m_vec     = m_vec.reshape(-1, 1)        # (n_floors, 1)
+ #g = 10
+ #F = eigen_vectors * beta * SadT0x * g * M_vec
  #export results
- tables = [T,T2]
- names = ["periods_secondes","scalars"]
- exptxt(tables, names, "tall building/dynamic2.txt", 12)
-
-def seismic():
- print("Running case : seismic analysis")
- # your code here
- T1,T2,T3,T4 = 0.1,0.5,2,4 #APR24 table3.4 
- h_building = 30.6  
- T_imperial = 0.05 * h_building ** 0.75
- Tx,Ty = 0.914,1.021
- sagx = static_equivalent(Tx,T_imperial,T1,T2,T3,T4)
- sagy = static_equivalent(Ty,T_imperial,T1,T2,T3,T4)
- print(T_imperial)
- print(sagx)
- print(sagy)
+# tables = tables1 + tables2
+# names = names1 + names2 
+# exptxt(tables, names, "tall building/dynamic.txt", 12)
 
 def plot():
  print("Running case 2: building upper vue ground level XY")
@@ -195,8 +198,6 @@ if __name__ == "__main__":
             dynamic()
         elif command == "plot":
             plot()
-        elif command == "seismic":
-            seismic()
         elif command == "wind_analysis":
             wind_analysis()
         else:
