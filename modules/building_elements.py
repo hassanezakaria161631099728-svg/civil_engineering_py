@@ -251,6 +251,10 @@ def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
  for i in range(n-1): M[i,i] = M1 #fill diagonal for i=1 to n-2 
  M[n-1,n-1] = M2 #element (n-1,n-1)
  M[n,n] = M3 #element (n,n)
+ Mk = np.zeros((n+1))
+ for i in range(n-1): Mk[i] = M1 #fill diagonal for i=1 to n-2 
+ Mk[n-1] = M2 #element (n-1,n-1)
+ Mk[n] = M3 #element (n,n)
  # SA matrix
  SA=np.zeros((n+1,n+1))
  for i in range(n+1):
@@ -262,35 +266,59 @@ def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
  # Elasticity module
  fc28 = 25 #MPA or MN/m2
  E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
- TSA = matrix_to_table(SA)
- TM = matrix_to_table(M)
+ #TSA = matrix_to_table(SA)
+ #TM = matrix_to_table(M)
  if case == "no bricks": CT = 0.075
  elif case == "with bricks": CT = 0.05
  else: raise ValueError("specify the case")
  T_imperial = CT * (n * h) ** 0.75
- return SA, M, MR, E, TSA, TM, T_imperial
+ return SA, M, Mk, MR, E, T_imperial
 
 def dynamic2(h,E,I,SA,M): 
  f= h**3 / (6 * E * I) #m/KN factor
  S= f * SA # flexibility matrix
  D =  S @ M #matrix product dynamic matrix
  eigen_values, eigen_vectors = np.linalg.eig(D) #eigen values are lambdas
- TS = matrix_to_table(S)
- TD = matrix_to_table(D)
- Teigen_vectors = matrix_to_table(eigen_vectors)
+ #TS = matrix_to_table(S)
+ #TD = matrix_to_table(D)
+ #Teigen_vectors = matrix_to_table(eigen_vectors)
  periods = eigen_values ** 0.5 * 2 * 3.14
- return f, TS, TD, eigen_values, Teigen_vectors, periods
+ return f, S, D, eigen_values, eigen_vectors, periods
 
-def static_equivalent(T,T_imperial,T1,T2,T3,T4):
- if T >= 1.3 * T_imperial: T = 1.3 * T_imperial 
- else: T = T
- A,I,S,R,Q = 0.3,1,1.2,4.5,1
- #spectrum
- if T > 0 and T < T1: sag = A * I * S * (2/3 + (T/T2) * (2.5 * Q/R - 2/3))
- elif T > T1 and T < T2: sag = A * I * S * 2.5 * Q / R 
- elif T > T2 and T < T3: sag = A * I * S * 2.5 * Q / R * T2 / T 
- elif T > T3 and T < T4: sag = A * I * S * 2.5 * Q / R * T2 * T3 / T ** 2
- else: raise ValueError("T is either negative or bigger than T4")
- return sag
-
+def seismic(periods,imperial_period,period1,period2,period3,building_weight,beta,
+eigen_vectors,M_vec):
+    # convert to numpy array
+    periods = np.asarray(periods, dtype=float)
+    # capped periods according to RPA
+    periods_new = np.minimum(periods, 1.3 * imperial_period)
+    # coefficients
+    A, I, S, R, Q = 0.3, 1, 1.2, 4.5, 1.05
+    # initialize spectral acceleration vector
+    SadT0 = np.zeros_like(periods_new)
+    # interval 1
+    mask1 = (periods_new > 0) & (periods_new < period1)
+    SadT0[mask1] = (A * I * S *(2/3+(periods_new[mask1] / period2)*(2.5 * Q / R - 2/3)))
+    # interval 2
+    mask2 = (periods_new >= period1) & (periods_new < period2)
+    SadT0[mask2] = (A * I * S * 2.5 * Q / R)
+    # interval 3
+    mask3 = (periods_new >= period2) & (periods_new < period3)
+    SadT0[mask3] = (A * I * S * 2.5 * Q / R* period2 / periods_new[mask3])
+    # interval 4
+    mask4 = (periods_new >= period3) & (periods_new < 4)
+    SadT0[mask4] = (A * I * S * 2.5 * Q / R* period2 * period3/ periods_new[mask4]**2)
+    # invalid periods
+    if np.any(periods_new <= 0) or np.any(periods_new >= 4):
+        raise ValueError("Some periods are invalid")
+    # damping correction
+    lam = 0.85
+    # modal base shear vector
+    #V = lam * sadT0 * building_weight * beta
+    V = lam * SadT0 * building_weight 
+    beta_new = beta.reshape(1, -1)      # (1, n_modes)
+    SadT0_new    = SadT0.reshape(1, -1)       # (1, n_modes)
+    M_vec_new     = M_vec.reshape(-1, 1)        # (n_floors, 1)
+    g = 10
+    F = eigen_vectors * beta_new * SadT0_new * g * M_vec_new
+    return SadT0, V, F
  

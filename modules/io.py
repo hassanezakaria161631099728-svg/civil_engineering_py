@@ -232,8 +232,8 @@ def matrices_to_tables2(matrices):
     for k, A in enumerate(matrices):
         n_rows, n_cols = A.shape
 
-        rows = [f"y{j}" for j in range(n_rows)]
-        cols = [f"x{i}" for i in range(n_cols)]
+        rows = [f"floor{j+1}" for j in range(n_rows)]
+        cols = [f"mode{i+1}" for i in range(n_cols)]
 
         df = pd.DataFrame(A, index=rows, columns=cols)
         df.name = f"table_{k+1}"  # optional label
