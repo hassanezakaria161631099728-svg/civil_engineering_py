@@ -99,15 +99,10 @@ def dynamic():
  fx, Sx, Dx, eigen_valuesx, eigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, Sy, Dy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  fw, Sw, Dw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
- names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw"]
- matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw]
- tables1 = matrices_to_tables2(matrices)
  T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,"eigen_valuesw": eigen_valuesw,
  "periods_x_s": periods_x,"periods_y_s": periods_y,"periods_w_s": periods_w})
  T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
  "T_imperial":[T_imperial]})
- tables2 = [T,T2]
- names2 = ["periods_secondes","scalars"]
  period1,period2,period3 = 0.15,0.6,2 #APR24 table3.4 
  h_building = h * (n+1)  
  imperial_period = 0.05 * h_building ** 0.75
@@ -117,16 +112,20 @@ def dynamic():
  SadT0x, Vx, Fx = seismic(periods_x,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
  SadT0y, Vy, Fy = seismic(periods_y,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
  T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": Vx,"Vy": Vy})
- print(T3)
+ matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx]
+ names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw","Forces"]
+ tables1 = matrices_to_tables2(matrices)
+ tables2 = [T,T2]
+ names2 = ["periods_secondes","scalars"]
  #beta = beta.reshape(1, -1)      # (1, n_modes)
  #SadT0x    = SadT0x.reshape(1, -1)       # (1, n_modes)
  #m_vec     = m_vec.reshape(-1, 1)        # (n_floors, 1)
  #g = 10
  #F = eigen_vectors * beta * SadT0x * g * M_vec
  #export results
-# tables = tables1 + tables2
-# names = names1 + names2 
-# exptxt(tables, names, "tall building/dynamic.txt", 12)
+ tables = tables1 + tables2
+ names = names1 + names2 
+ exptxt(tables, names, "tall building/dynamic.txt", 12)
 
 def plot():
  print("Running case 2: building upper vue ground level XY")
