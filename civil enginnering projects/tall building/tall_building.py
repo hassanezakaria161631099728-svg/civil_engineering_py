@@ -1,8 +1,8 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import (stairs,RC_columns,RC_shear_force,shape_geometry_attributes,
-sectorial,masses1,dynamic1,dynamic2,seismic)
+from modules.building_elements import (stairs,RC_structure,RC_shear_force,shape_geometry_attributes,
+RC_walls,masses1,dynamic1,dynamic2,seismic)
 from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
 plot_structure)
 from modules.wind.wind import wind,dimensions
@@ -15,12 +15,15 @@ def elements():
  story_height = 3.06 # m
  vertical_step = 18 # cm
  horizontal_step = 25 # cm
- T1 = stairs(story_height, vertical_step, horizontal_step)
+ bearing_length = 110 #cm
+ stairs_width = 3 #m
+ T1,stairs_surface = stairs(story_height, vertical_step, horizontal_step,bearing_length,stairs_width)
  #reinforced concrete columns
  fc28,fe = 30,400
  x = np.array([0, 4, 4*2, 4*3, 4*4, 4*5, 4*6, 4*7])
  y = np.array([0, 5, 5*2, 5*3, 5*4])
- tables1,names1 = RC_columns(x,y)
+ e = 0.2
+ tables1,names1,S_columns,Lbeamx,Lbeamy,S_beams,L_rcwall_scalar,S_RCwalls = RC_structure(x,y,e)
  #RC shear force units are in mm and N
  At,b,d,alpha = 452,250,500,0.85/1.2
  Vu_reduced = 179000
@@ -32,36 +35,6 @@ def elements():
  names2 = ["stairs","RC_shear_force"]
  tables, names = tables1 + tables2, names1 + names2
  exptxt(tables, names, "tall building/elements.txt", 12)
-
-def geometry():
- print("Running case 2: geometry_attributes")
- # your code here
- #shape1
- a,Lx,Ly,e = 0.3,4,4,0.2
- a1 = [a, Lx-a,  a,    e, a]
- b1 = [a,    e,  a, Ly-a, a]
- xg1 = [a/2, (Lx-a)/2+a, Lx+a/2,        a/2,      a/2]
- yg1 = [a/2,        a/2,    a/2, (Ly-a)/2+a,   a/2+Ly]
- T_scalar1, T_vec1 = shape_geometry_attributes(a1, b1, xg1, yg1)
-
- # general scheme RC walls coordinates
- # centre of mass vectors 
- xg1g = T_scalar1["xg_global"].iloc[0]
- yg1g = T_scalar1["yg_global"].iloc[0]
-
- Lbx,Lby = 28, 20 
- # X
- X = [xg1g, Lbx-xg1g, xg1g, Lbx-xg1g]
-
- # Y
- Y = [yg1g, yg1g, Lby-yg1g, Lby-yg1g]
-
- T_sectorial,T_sectorial_scalars = sectorial(T_scalar1,X,Y)
-
-# export results
- tables = [T_vec1,T_scalar1,T_sectorial, T_sectorial_scalars]
- names = ["vectors1","scalars1", "sectorial_attributes","sectorial_attributes_scalars"]
- exptxt(tables, names, "tall building/geometry.txt", 12)
 
 def masses():
  print("running case 3: masses")
@@ -189,8 +162,6 @@ if __name__ == "__main__":
 
         if command == "elements":
             elements()
-        elif command == "geometry":
-            geometry()
         elif command == "masses":
             masses()
         elif command == "dynamic":
