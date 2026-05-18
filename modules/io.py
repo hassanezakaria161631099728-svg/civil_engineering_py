@@ -242,6 +242,22 @@ def matrices_to_tables2(matrices):
 
     return tables
 
+def matrices_to_tables4(matrices):
+    tables = []
+
+    for k, A in enumerate(matrices):
+        n_rows, n_cols = A.shape
+
+        rows = [f"y{j+1}" for j in range(n_rows)]
+        cols = [f"x{i+1}" for i in range(n_cols)]
+
+        df = pd.DataFrame(A, index=rows, columns=cols)
+        df.name = f"table_{k+1}"  # optional label
+
+        tables.append(df)
+
+    return tables
+
 def export_matrices_to_txt(matrices, names, filename="results.txt", x=None, y=None):
     if len(matrices) != len(names):
         raise ValueError("Number of matrices must match number of names")
