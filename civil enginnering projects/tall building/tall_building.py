@@ -1,8 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import (stairs,RC_structure,RC_shear_force,shape_geometry_attributes,
-RC_walls,masses1,dynamic1,dynamic2,seismic)
+from modules.building_elements import (stairs,RC_structure,RC_shear_force,masses,dynamic1,dynamic2,seismic)
 from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
 plot_structure)
 from modules.wind.wind import wind,dimensions
@@ -23,45 +22,28 @@ def elements():
  x = np.array([0, 4, 4*2, 4*3, 4*4, 4*5, 4*6, 4*7])
  y = np.array([0, 5, 5*2, 5*3, 5*4])
  e = 0.2
- tables1,names1,S_columns,Lbeamx,Lbeamy,S_beams,L_rcwall_scalar,S_RCwalls = RC_structure(x,y,e)
+ tables1, names1, S_columns, Lbeamx, Lbeamy, Sbeamx, Sbeamy, hbeamx, hbeamy, L_rcwall_scalar, S_RCwalls = \
+RC_structure(x,y,e) 
  #RC shear force units are in mm and N
  At,b,d,alpha = 452,250,500,0.85/1.2
  Vu_reduced = 179000
  ft28,up,down,stmin=\
  RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
- T5 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
+ T2 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
+ #masses
+ T3,T4= \
+ masses(x,y,story_height,S_columns,Sbeamx,Sbeamy,hbeamx,hbeamy,L_rcwall_scalar,S_RCwalls,stairs_surface)
+ tables2 = [T1,T2,T3,T4]
+ names2 = ["stairs","RC_shear_force","masses1","masses2"]
  # export results
- tables2 = [T1,T5]
- names2 = ["stairs","RC_shear_force"]
  tables, names = tables1 + tables2, names1 + names2
  exptxt(tables, names, "tall building/elements.txt", 12)
 
-def masses():
- print("running case 3: masses")
- #your code here
- geometry = read_tables_txt3("tall building/geometry.txt")
- Lx,Ly = 28,20 #building dimension x y
- h_story,h_beam,b_beam = 3.06,0.4,0.3 
- nx,ny = 7,4 #number of spans on x and y
- CD = 2.5 #concrete density
- # roof top barricade
- #RC columns
- a_column = 0.55
- T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,T_tiles,m_RT,m_BLF = \
- masses1(geometry,Lx,Ly,h_story,a_column,CD,nx,ny,b_beam,h_beam)
- print(m_RT)
- print(m_BLF)
- #export results
- tables = [T_RTB,T_RC_walls,T_columns,T_beams,T_floor,T_loads_on_beams,T_tiles]
- names = ["roof_top_barricade","RC_walls", "RC_columns","RC_beams","floor",
- "loads_on_beams","tiles"]
- exptxt(tables, names, "tall building/masses.txt", 18)
- 
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
  n = 9 #number of floors above the base floor
- M1, M2, M3 = 549.56, 549.56, 524.36 #masses
+ M1, M2, M3 = 490, 440, 505.52 #masses
  Lx, Ly = 28, 20
  # SA and mass matrices and Elasticity module
  h = 3.06 #m story height
