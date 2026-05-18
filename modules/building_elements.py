@@ -1,9 +1,9 @@
 import math
 import numpy as np
 import pandas as pd
-from modules.io import matrix_to_table,matrices_to_tables2,exptxt
+from modules.io import matrix_to_table,matrices_to_tables4,exptxt
 # stairs
-def stairs(story_height, vertical_step, horizontal_step):
+def stairs(story_height, vertical_step, horizontal_step,bearing_length,stairs_width):
  if 16 <=vertical_step <= 19 and 23 <= horizontal_step <= 32: # cm
    print("vertical and horizontal step are within accepted segment")
  else:      
@@ -14,17 +14,17 @@ def stairs(story_height, vertical_step, horizontal_step):
  stairs_length = n_stairs * horizontal_step
  slope_angle = math.atan(vertical_step / horizontal_step)
  slope_angle_deg = math.degrees(slope_angle)
- bearing_lenght = 110 #cm 
- total_lenght2 = stairs_length / math.cos(slope_angle) + 2 * bearing_lenght
- total_lenght3 = stairs_length  + 2 * bearing_lenght 
+ total_lenght2 = stairs_length / math.cos(slope_angle) + 2 * bearing_length
+ total_lenght3 = (stairs_length  + 2 * bearing_length) / 100 
  thickness_min = total_lenght2 / 30
  thickness_max = total_lenght2 / 20
+ stairs_surface = stairs_width * total_lenght3
  T = pd.DataFrame({"story_height": [story_height],"stairs_height": [stairs_height],
  "vertical_step": [vertical_step],"n_stairs": [n_stairs],"horizontal_step": [horizontal_step],
  "stairs_length": [stairs_length],"slope_angle": [slope_angle],"slope_angle_deg": [slope_angle_deg],
- "total_lenght2": [total_lenght2],"total_lenght3": [total_lenght3],"thickness_min":[thickness_min],
- "thickness_max":[thickness_max]})
- return T
+ "total_lenght2_cm": [total_lenght2],"total_lenght3_m": [total_lenght3],"thickness_min":[thickness_min],
+ "thickness_max":[thickness_max],"stairs_surface_m2":[stairs_surface]})
+ return T,stairs_surface
 
 def RC_column(fc28,fe,S,n):
  Smaj = 1.1 * S #m
@@ -48,7 +48,7 @@ def RC_column(fc28,fe,S,n):
  "Bc": Bc.reshape(-1),"Br": Br.reshape(-1)})
  return T
 
-def RC_columns(x,y):
+def RC_columns(x,y,spansx, spansy):
  n,p = len(x),len(y)
  Lx,Ly,S = np.zeros((n)), np.zeros((p)), np.zeros((n,p))
  i,j = np.arange(1, n-1),np.arange(1, p-1)
@@ -74,11 +74,159 @@ def RC_columns(x,y):
  amin = Bcmin**0.5
  a = np.ceil(amin*20) / 20
  Bc = a**2 # we have a rectangular column
- Br = (a - 0.02)**0.5
- matrices = [S, Smaj, NG, NQ, Nu, Brmin, Bcmin, amin, a, Bc, Br] 
- tables = matrices_to_tables2(matrices)
- names = ["S","Smaj","NG","NQ","Nu","Brmin","Bcmin","amin","a","Bc","Br"]
- return tables,names
+ Br = (a - 0.02)**0.5 
+ return S, Smaj, NG, NQ, Nu, Brmin, Bcmin, amin, a, Bc, Br
+
+def RC_structure(x,y,e):
+ spansx, spansy = x[1:] - x[:-1], y[1:] - y[:-1]
+ #RC columns
+ S, Smaj, NG, NQ, Nu, Brmin, Bcmin, amin, a, Bc, Br = RC_columns(x,y,spansx, spansy)
+ #support beams
+ Lbeamx,Lbeamy = beam_clear_lengths(a, spansx, spansy)
+ #hbeamxmax,hbeamymax = Lbeamx/10,Lbeamy/10  
+ hbeamx = beam_heights(Lbeamx)
+ hbeamy = beam_heights(Lbeamy)
+ wbeamx = beam_width(hbeamx)
+ wbeamy = beam_width(hbeamy)
+ Sbeamx, Sbeamy = Lbeamx * wbeamx, Lbeamy * wbeamy
+ matrices = [S, Smaj, NG, NQ, Nu, Brmin, Bcmin, amin, a, Bc, Br, Lbeamx, Lbeamy,
+hbeamx, hbeamy, wbeamx, wbeamy, Sbeamx, Sbeamy] 
+ #RC walls
+ tables2, names2, L_rcwall_vec, L_rcwall_scalar, S_RCwalls = geometry(a[0,0],spansx[0],a[1,0],e,x[-1],y[-1])
+ tables1 = matrices_to_tables4(matrices)
+ names1 = ["S","Smaj","NG","NQ","Nu","Brmin","Bcmin","amin","a","Bc","Br","Lbeamx","Lbeamy",
+"hbeamx","hbeamy","wbeamx", "wbeamy","Sbeamx", "Sbeamy"]
+ S_beams = Sbeamx + Sbeamy 
+ tables, names = tables1 + tables2, names1 + names2 
+ return tables, names, S, Lbeamx, Lbeamy, S_beams, L_rcwall_scalar, S_RCwalls 
+
+def geometry(a1,L,a2,e,Lbx,Lby):
+ #shape1
+ #a1,L,a2,e = 0.3,4,0.4,0.2
+ L_rcwall = L - (a1+a2)/2
+ a =  [a1,        L_rcwall,               a2,               e]
+ b =  [a1,               e,               a2,        L_rcwall]
+ xg = [a1/2, L_rcwall/2+a1, a1+L_rcwall+a2/2,            a1/2]
+ yg = [a2/2,          a2/2,             a2/2, L_rcwall/2 + a2]
+ T_scalar1, T_vec1 = shape_geometry_attributes(a, b, xg, yg,)
+
+ # general scheme RC walls coordinates
+ # centre of mass vectors 
+ xgg = T_scalar1["xg_global"].iloc[0]
+ ygg = T_scalar1["yg_global"].iloc[0]
+
+ #Lbx,Lby = 28, 20 #building dimensions on x and y 
+ # X
+ X = [xgg, Lbx-xgg, xgg, Lbx-xgg]
+
+ # Y
+ Y = [ygg, ygg, Lby-ygg, Lby-ygg]
+
+ T_sectorial,T_sectorial_scalars, L_rcwall_vec,L_rcwall_scalar, A_scalar = RC_walls(T_scalar1,X,Y,L_rcwall)
+ print(L_rcwall_vec) 
+ print(L_rcwall_scalar) 
+ print(A_scalar)
+ #export results
+ tables = [T_vec1,T_scalar1,T_sectorial, T_sectorial_scalars]
+ names = ["vectors1","scalars1", "sectorial_attributes","sectorial_attributes_scalars"]
+
+ return tables, names, L_rcwall_vec, L_rcwall_scalar, A_scalar 
+
+def beam_clear_lengths(A, Lx, Ly):
+
+    A = np.asarray(A)
+
+    ny, nx = A.shape
+    # -----------------------------------
+    # Horizontal beams
+    # shape = (ny, nx-1)
+    # -----------------------------------
+    Lbeamx = np.zeros((ny, nx-1))
+
+    for i in range(ny):
+        for j in range(nx-1):
+
+            Lbeamx[i,j] = (
+                Lx[j]
+                - (A[i,j] + A[i,j+1]) / 2
+            )
+    # -----------------------------------
+    # Vertical beams
+    # shape = (ny-1, nx)
+    # -----------------------------------
+    Lbeamy = np.zeros((ny-1, nx))
+
+    for i in range(ny-1):
+        for j in range(nx):
+
+            Lbeamy[i,j] = (
+                Ly[i]
+                - (A[i,j] + A[i+1,j]) / 2
+            )
+
+    return Lbeamx, Lbeamy
+
+def beam_heights(Lbeam):
+
+    Lbeam = np.asarray(Lbeam)
+
+    # -----------------------------------
+    # Target preliminary sizing
+    # -----------------------------------
+    Hbeam = Lbeam / 12
+
+    # -----------------------------------
+    # Round UP to nearest 0.05 m
+    # -----------------------------------
+    Hbeam = 0.05 * np.ceil(Hbeam / 0.05)
+
+    # -----------------------------------
+    # Bounds
+    # -----------------------------------
+    Hmin = Lbeam / 15
+    Hmax = Lbeam / 10
+
+    # enforce limits
+    Hbeam = np.maximum(Hbeam, Hmin)
+    Hbeam = np.minimum(Hbeam, Hmax)
+
+    # -----------------------------------
+    # Final rounding again
+    # -----------------------------------
+    Hbeam = 0.05 * np.ceil(Hbeam / 0.05)
+
+    return Hbeam
+
+def beam_width(hbeam):
+
+    hbeam = np.asarray(hbeam)
+
+    # -----------------------------------
+    # Target preliminary sizing
+    # -----------------------------------
+    wbeam = hbeam * 0.55
+
+    # -----------------------------------
+    # Round UP to nearest 0.05 m
+    # -----------------------------------
+    wbeam = 0.05 * np.ceil(wbeam / 0.05)
+
+    # -----------------------------------
+    # Bounds
+    # -----------------------------------
+    wmin = hbeam * 0.3
+    wmax = hbeam * 0.8
+
+    # enforce limits
+    wbeam = np.maximum(wbeam, wmin)
+    wbeam = np.minimum(wbeam, wmax)
+
+    # -----------------------------------
+    # Final rounding again
+    # -----------------------------------
+    wbeam = 0.05 * np.ceil(wbeam / 0.05)
+
+    return wbeam
 
 def RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d): #units mm and N
   ft28 = 0.06 * fc28 + 0.6 
@@ -158,7 +306,7 @@ def shape_geometry_attributes(a, b, xg, yg):
  "Ix_local": Ix_local,"Iy_local": Iy_local,"Ix": Ix,"Iy": Iy})
  return T_scalar, T_vec
 
-def sectorial(T_scalar1,X,Y):
+def RC_walls(T_scalar1,X,Y,L_rcwall):
 # we define geometrical attributes for reinforced concrete walls
 #inertia X axis
  Ix_total1 = T_scalar1["Ix_total"].iloc[0]
@@ -168,11 +316,9 @@ def sectorial(T_scalar1,X,Y):
  A_total1 = T_scalar1["A_total"].iloc[0]
  n = 4
 # inertia vectors
- Ix_total,Iy_total,A_total = np.zeros((n)), np.zeros((n)), np.zeros((n))
- Ix_total[0:4], Iy_total[0:4], A_total[0:4] = Ix_total1, Iy_total1, A_total1 
-
- A_scalar,Ix_scalar,Iy_scalar = np.sum(A_total),np.sum(Ix_total),np.sum(Iy_total)
-
+ L_rcwall_vec,Ix_total,Iy_total,A_total = np.zeros((n)),np.zeros((n)), np.zeros((n)), np.zeros((n))
+ L_rcwall_vec[0:4],Ix_total[0:4], Iy_total[0:4], A_total[0:4] = L_rcwall, Ix_total1, Iy_total1, A_total1 
+ L_rcwall_scalar,A_scalar,Ix_scalar,Iy_scalar = np.sum(L_rcwall_vec), np.sum(A_total), np.sum(Ix_total),np.sum(Iy_total)
  #global torsion center
  XC = np.sum(Ix_total * X) / Ix_scalar
  YC = np.sum(Iy_total * Y) / Iy_scalar
@@ -184,12 +330,12 @@ def sectorial(T_scalar1,X,Y):
  Iw_scalar = np.sum(Iw_vec)
 
  RC_walls = ["RC_wall1","RC_wall2","RC_wall3","RC_wall4"]
- T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"A": A_total,"Ix": Ix_total,"Iy": Iy_total,"X": X,"Y": Y,
- "dx": dx,"dy": dy,"Iw":Iw_vec})
- T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","A": [A_scalar],"Ix": [Ix_scalar],
- "Iy": [Iy_scalar],"XC": [XC],"YC": [YC],"Iw":Iw_scalar})
+ T_sectorial = pd.DataFrame({"RC_walls": RC_walls,"length":L_rcwall_vec,"A": A_total,"Ix": Ix_total,
+"Iy": Iy_total,"X": X,"Y": Y,"dx": dx,"dy": dy,"Iw":Iw_vec})
+ T_sectorial_scalar = pd.DataFrame({"geometry_attribute": "value","length":[L_rcwall_scalar],"A": [A_scalar],
+"Ix": [Ix_scalar],"Iy": [Iy_scalar],"XC": [XC],"YC": [YC],"Iw":Iw_scalar})
 
- return T_sectorial, T_sectorial_scalar
+ return T_sectorial, T_sectorial_scalar, L_rcwall_vec ,L_rcwall_scalar, A_scalar
 
 def masses1(geometry,Lx,Ly,h_story,a_column,CD,nx,ny,b_beam,h_beam):
  geometry_attributes = geometry["sectorial_attributes_scalars"]
