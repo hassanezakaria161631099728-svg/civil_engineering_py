@@ -27,7 +27,8 @@ def stairs(story_height, vertical_step, horizontal_step,bearing_length,stairs_wi
  return T,stairs_surface
 
 def RC_column(fc28,fe,S,n):
- Smaj = 1.1 * S #m
+ #note: the input S is a matrix value 
+ Smaj = 1.1 * S #m # this is the majorated surface held by column
  Q_current_floor,Q_roof_top,G_current_floor,G_roof_top = 150,100,665,787.6
  NQ = compute_NQ(n+1,Q_current_floor,Q_roof_top,Smaj) 
  NG = compute_NG(n+1,G_current_floor,G_roof_top,Smaj) 
