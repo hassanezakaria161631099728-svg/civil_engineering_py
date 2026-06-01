@@ -7,6 +7,8 @@ plot_structure)
 from modules.wind.wind import wind,dimensions
 from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3,matrices_to_tables2
 
+#here we define the building from scratch starting by the columns mass centers coordinates in x and y so we define surface then we use the input base floor heigth and current floor height and number of floors to define the total height to the building then we define the surface of each floor using x and y 
+#and we complete the rest of this segment
 def elements():
  print("Running case 1: elements")
  # your code here
@@ -39,18 +41,21 @@ RC_structure(x,y,e)
  tables, names = tables1 + tables2, names1 + names2
  exptxt(tables, names, "tall building/elements.txt", 12)
 
+#this segment dynamic() is used to study the mouvement of the building due to it's proper mass without any external forces and this by using the functions dynamic1 and dynamic2 and then 
+#studying the mouvement of the building due to external forces and we mean seismic analysis and in this code we use the algerian regulation made at 2024 we refer to it as APR24 Algerian paraseimic regulation
+#  
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
- n = 9 #number of floors above the base floor
- M1, M2, M3 = 490, 440, 505.52 #masses
- Lx, Ly = 28, 20
+ n = 8 #number of floors above the base floor
+ M1, M2, M3 = 639.2, 639.2, 602.2 #masses
+ Lx, Ly = 29, 26.6
  # SA and mass matrices and Elasticity module
  h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
  case = "with bricks"
  SA, M, M_vec, MR, E, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
- Ix, Iy, Iw = 23.865, 23.865, 4581.9
+ Ix, Iy, Iw = 26.34, 26.34, 4581.9
  fx, Sx, Dx, eigen_valuesx, eigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, Sy, Dy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  fw, Sw, Dw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
@@ -82,6 +87,10 @@ def dynamic():
  names = names1 + names2 
  exptxt(tables, names, "tall building/dynamic.txt", 12)
 
+#this segment plot() is used to draw the building scheme in three axis systems X length Y width Z heigth
+#the upper view in XY axis where Z=0 
+#the elevation view XZ
+#the elevation view YZ
 def plot():
  print("Running case 2: building upper vue ground level XY")
  # your code here
@@ -136,6 +145,19 @@ def wind_analysis():
  "T6", "T7", "T8", "T9", "T10", "Troof2"]
  exptxt(Tables, Names, "tall building/wind.txt", 12)
 
+def steel():
+ print("Running case 5: steel")
+ N,M,B,l = 0.5439, 0.5657, 1.15, 5.75
+ I = 3.1684
+ segmat_negative = (N / B) - (M * l / 2 / I)
+ segmat_positive = (N / B) + (M * l / 2 / I)
+ lc = segmat_positive / (segmat_positive + segmat_negative) * l
+ lt = l - lc
+ print(segmat_negative)
+ print(segmat_positive)
+ print(lc)
+ print(lt)
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide a case: dynamic, columns,geometry,test")
@@ -152,6 +174,8 @@ if __name__ == "__main__":
             plot()
         elif command == "wind_analysis":
             wind_analysis()
+        elif command == "steel":
+            steel()
         else:
             print("Unknown case")
             
