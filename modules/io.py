@@ -242,17 +242,17 @@ def matrices_to_tables2(matrices):
 
     return tables
 
-def matrices_to_tables4(matrices):
+def matrices_to_tables4(matrices,row_prefix,col_prefix):
     tables = []
 
     for k, A in enumerate(matrices):
         n_rows, n_cols = A.shape
 
-        rows = [f"y{j+1}" for j in range(n_rows)]
-        cols = [f"x{i+1}" for i in range(n_cols)]
+        rows = [f"{row_prefix}{j+1}" for j in range(n_rows)]
+        cols = [f"{col_prefix}{i+1}" for i in range(n_cols)]
 
         df = pd.DataFrame(A, index=rows, columns=cols)
-        df.name = f"table_{k+1}"  # optional label
+        df.name = f"table_{k+1}"
 
         tables.append(df)
 
