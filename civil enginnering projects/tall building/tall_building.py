@@ -1,11 +1,11 @@
 import sys
 import numpy as np
 import pandas as pd
-from modules.building_elements import (stairs,RC_structure,RC_shear_force,masses,dynamic1,dynamic2,seismic)
+from modules.building_elements import (stairs,RC_structure,RC_shear_force,masses,dynamic1,dynamic2,seismic,geometry,moments_from_shear)
 from modules.FEM import (generate_Z,prepare_fem_inputs,generate_elements2,plot_from_above_view,
 plot_structure)
 from modules.wind.wind import wind,dimensions
-from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3,matrices_to_tables2
+from modules.io import matrix_to_table,export_matrices_txt2,exptxt,read_tables_txt3,matrices_to_tables2,matrices_to_tables4
 
 #here we define the building from scratch starting by the columns mass centers coordinates in x and y so we define surface then we use the input base floor heigth and current floor height and number of floors to define the total height to the building then we define the surface of each floor using x and y 
 #and we complete the rest of this segment
@@ -14,31 +14,35 @@ def elements():
  # your code here
  #stairs
  story_height = 3.06 # m
- vertical_step = 18 # cm
- horizontal_step = 25 # cm
- bearing_length = 110 #cm
- stairs_width = 3 #m
- T1,stairs_surface = stairs(story_height, vertical_step, horizontal_step,bearing_length,stairs_width)
+ vertical_step = 17 # cm
+ horizontal_step = 30 # cm
+ platform_length1,platform_length2 = 110,160 #cm
+ platform_width = 4
+ slope_width = 1.25 #m
+ tables1,names1,slope_surface1,slope_surface2,platform_surface1,platform_surface2 = \
+ stairs(story_height, vertical_step, horizontal_step,platform_length1,platform_length2,platform_width,slope_width)
  #reinforced concrete columns
- fc28,fe = 30,400
- x = np.array([0, 4, 4*2, 4*3, 4*4, 4*5, 4*6, 4*7])
- y = np.array([0, 5, 5*2, 5*3, 5*4])
- e = 0.2
- tables1, names1, S_columns, Lbeamx, Lbeamy, Sbeamx, Sbeamy, hbeamx, hbeamy, L_rcwall_scalar, S_RCwalls = \
-RC_structure(x,y,e) 
+ fc28,fe = 30,500
+ x = np.array([0, 4.4, 8.2, 12, 16.6, 20.4, 24.2, 28.6])
+ y = np.array([0, 2, 8, 13.1, 18.2, 24.2, 26.2])
+ n_floors,fc28,fe = 8,30,500
+ tables2, names2, a, S_columns, Lbeamx, Lbeamy, Sbeamx, Sbeamy, hbeamx, hbeamy, S_RCwalls = \
+ RC_structure(x,y,n_floors,fc28,fe) 
  #RC shear force units are in mm and N
- At,b,d,alpha = 452,250,500,0.85/1.2
- Vu_reduced = 179000
- ft28,up,down,stmin=\
- RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
- T2 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
+ # At,b,d,alpha = 452,250,500,0.85/1.2
+ # Vu_reduced = 179000
+ # ft28,up,down,stmin=\
+ # RC_shear_force(fe,At,alpha,b,Vu_reduced,fc28,d)
+ # T2 = pd.DataFrame({"ft28": [ft28],"up": [up],"down": [down],"stmin": [stmin]})
  #masses
- T3,T4= \
- masses(x,y,story_height,S_columns,Sbeamx,Sbeamy,hbeamx,hbeamy,L_rcwall_scalar,S_RCwalls,stairs_surface)
- tables2 = [T1,T2,T3,T4]
- names2 = ["stairs","RC_shear_force","masses1","masses2"]
+ S_RCwalls,L_RCwalls,L_balcony,w_balcony,n_balconies,L_columns = S_RCwalls-24*0.16,44,4.25,1.2,4,7.6
+ L_slope,w_slope,L_platform,w_platform,beam_heigth= 2.4,1.25,2.2,3,0.4
+ tables3, names3 = \
+ masses(x,y,a,story_height,S_columns,Sbeamx,Sbeamy,hbeamx,hbeamy,L_RCwalls,L_columns,S_RCwalls,
+ slope_surface1,slope_surface2,platform_surface1,platform_surface2,
+ L_balcony,w_balcony,n_balconies,L_slope,w_slope,L_platform,w_platform,beam_heigth)
  # export results
- tables, names = tables1 + tables2, names1 + names2
+ tables, names = tables1 + tables2 + tables3, names1 + names2 + names3
  exptxt(tables, names, "tall building/elements.txt", 12)
 
 #this segment dynamic() is used to study the mouvement of the building due to it's proper mass without any external forces and this by using the functions dynamic1 and dynamic2 and then 
@@ -158,6 +162,42 @@ def steel():
  print(lc)
  print(lt)
 
+def horizontal_loads():
+ print("Running case 6: horizontal loads")
+ #RC walls
+ Lbx,Lby = 29.4,27
+ tables1, names1, S_RCwalls, Ix_total, Iy_total, dx, dy, Iw_scalar = geometry(Lbx,Lby)
+ e = 1.45 #m 
+ Fx = np.array([2080.371, 1301.305, 1240.7, 1377.8, 1382.648, 1404.712, 1354.783, 970.515, 357.536])
+ Fy = np.array([2074.35, 1294.428, 1235.761, 1374.982, 1384.167, 1404.017, 1354.295, 970.114, 357.361])
+
+ # inertia ratios
+ Ix_ratios = Ix_total / Ix_total.sum()
+ Iy_ratios = Iy_total / Iy_total.sum()
+
+ # outer product
+ # translation forces matrix
+ trans_forces_x,trans_forces_y = np.outer(Fx, Ix_ratios),np.outer(Fy,Iy_ratios) # translation forces matrix 
+ # rotation forces matrix
+ rot_forces_x,rot_forces_y = np.outer(Fx, e * Ix_total * dx / Iw_scalar),np.outer(Fy, e * Iy_total * dy / Iw_scalar) # translation forces matrix 
+ # sum 
+ forces_x,forces_y = trans_forces_x + rot_forces_x, trans_forces_y + rot_forces_y
+ # shear forces
+ Vx,Vy = np.cumsum(forces_x, axis=0),np.cumsum(forces_y, axis=0)
+ # moments
+ Mx,My = moments_from_shear(Vx, h=3.06),moments_from_shear(Vy, h=3.06)
+
+ matrices = [trans_forces_x,rot_forces_x,forces_x,Vx,Mx,trans_forces_y,rot_forces_y,forces_y,Vy,My]
+ tables2 = matrices_to_tables4(matrices, row_prefix='floor', col_prefix='wall')
+ names2 = ["translation_forces_x","rotation_forces_x","forces_x","shear_forces_x","moments_x",
+ "translation_forces_y","rotation_forces_y","forces_y","shear_forces_y","moments_y"] 
+ tables = tables1 + tables2
+ names = names1 + names2 
+ #print(IxXFx.shape)
+ #print(IxXFx)
+ exptxt(tables, names, "tall building/horizontal_loads.txt", 12)
+    
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide a case: dynamic, columns,geometry,test")
@@ -176,6 +216,8 @@ if __name__ == "__main__":
             wind_analysis()
         elif command == "steel":
             steel()
+        elif command == "horizontal_loads":
+            horizontal_loads()
         else:
             print("Unknown case")
             
