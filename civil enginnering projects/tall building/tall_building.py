@@ -47,40 +47,53 @@ def elements():
 
 #this segment dynamic() is used to study the mouvement of the building due to it's proper mass without any external forces and this by using the functions dynamic1 and dynamic2 and then 
 #studying the mouvement of the building due to external forces and we mean seismic analysis and in this code we use the algerian regulation made at 2024 we refer to it as APR24 Algerian paraseimic regulation
-#  
+  
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
  n = 8 #number of floors above the base floor
- M1, M2, M3 = 639.2, 639.2, 602.2 #masses
- Lx, Ly = 29, 26.6
+ M1, M2, M3 = 805, 802.66, 795.6 #masses
+ Lx, Ly = 29, 21
  # SA and mass matrices and Elasticity module
  h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
  case = "with bricks"
- SA, M, M_vec, MR, E, T_imperial = dynamic1(n,M1,M2,M3,h,case,Lx,Ly)
- Ix, Iy, Iw = 26.34, 26.34, 4581.9
+ fc28 = 30
+ SA, M, M_vec, W_vec, MR, E, building_weight, building_height, imperial_period = \
+ dynamic1(n,M1,M2,M3,h,case,Lx,Ly,fc28)
+ Ix, Iy, Iw = 15.379, 15.72, 4581.9
  fx, Sx, Dx, eigen_valuesx, eigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, Sy, Dy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  fw, Sw, Dw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
  T = pd.DataFrame({"eigen_valuesx": eigen_valuesx,"eigen_valuesy": eigen_valuesy,"eigen_valuesw": eigen_valuesw,
  "periods_x_s": periods_x,"periods_y_s": periods_y,"periods_w_s": periods_w})
- T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
- "T_imperial":[T_imperial]})
- period1,period2,period3 = 0.15,0.6,2 #APR24 table3.4 
- h_building = h * (n+1)  
- imperial_period = 0.05 * h_building ** 0.75
- #response spectrum
- building_weight = 5 * 10e4
  beta = eigen_vectors @ M_vec / (eigen_vectors**2 @ M_vec)
- SadT0x, Vx, Fx = seismic(periods_x,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
- SadT0y, Vy, Fy = seismic(periods_y,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec)
- T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": Vx,"Vy": Vy})
- matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx]
- names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw","Forces"]
+ betaup1 = eigen_vectors * W_vec
+ betadown1 = eigen_vectors**2 * W_vec
+ betaup2 = np.sum(betaup1, axis=1)
+ betadown2 = np.sum(betadown1, axis=1)
+ alpha = betaup2**2 / betadown2 * (1/building_weight)
+ sum_alpha = np.sum(alpha)
+ T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
+ "imperial_period":[imperial_period],"building_weight":building_weight,"building_height":building_height,
+ "sum_alpha":sum_alpha})
+ period1,period2,period3 = 0.1,0.5,2 #APR24 table3.4 
+ #response spectrum
+ Q = 1
+ periods_new_x,SadT0x, V_vecx, Fx, Fsrssx, Vx, Vsrssx = \
+ seismic(periods_x,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec,Q)
+ periods_new_y,SadT0y, V_vecy, Fy, Fsrssy, Vy, Vsrssy = \
+ seismic(periods_y,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec,Q)
+ T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": V_vecx,"Vy": V_vecy,"beta":beta,
+ "periods_new_x":periods_new_x,"periods_new_y":periods_new_y,
+ "betaup2":betaup2,"betadown2":betadown2,"alpha":alpha})
+ T4 = pd.DataFrame({"Fx":Fsrssx,"Fy":Fsrssy,"Vx":Vsrssx,"Vy":Vsrssy,"M":M_vec,"W":W_vec,})
+ matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx,Fy,Vx,Vy,betaup1,betadown1]
+ names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw","forces_x","forces_y",
+ "Vx","Vy","betaup","betadown"]
  tables1 = matrices_to_tables2(matrices)
- tables2 = [T,T2]
- names2 = ["periods_secondes","scalars"]
+ tables2 = [T,T2,T3,T4]
+ names2 = ["periods_secondes","scalars","vectors1","vectors2"]
  #beta = beta.reshape(1, -1)      # (1, n_modes)
  #SadT0x    = SadT0x.reshape(1, -1)       # (1, n_modes)
  #m_vec     = m_vec.reshape(-1, 1)        # (n_floors, 1)
