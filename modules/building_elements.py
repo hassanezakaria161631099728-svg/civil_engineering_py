@@ -454,7 +454,7 @@ def shape_geometry_attributes(a, b, xg, yg):
  "Ix_local": Ix_local,"Iy_local": Iy_local,"Ix": Ix,"Iy": Iy})
  return T_scalar, T_vec
 
-def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
+def dynamic1(n,M1,M2,M3,h,case,Lx,Ly,fc28):
  #mass matrix
  M = np.zeros((n+1,n+1))
  for i in range(n-1): M[i,i] = M1 #fill diagonal for i=1 to n-2 
@@ -473,15 +473,18 @@ def dynamic1(n,M1,M2,M3,h,case,Lx,Ly):
         else : SA[i,j] = (j+1)**2 * (3*(i+1)-(j+1)) # i>j
  MR = M * (Lx**2 + Ly**2) / 12
  # Elasticity module
- fc28 = 25 #MPA or MN/m2
  E=11000 * fc28 **(1/3) * 1000 #MN/m2 to KN/m2 we multiply on 10**3
  #TSA = matrix_to_table(SA)
  #TM = matrix_to_table(M)
  if case == "no bricks": CT = 0.075
  elif case == "with bricks": CT = 0.05
  else: raise ValueError("specify the case")
- T_imperial = CT * (n * h) ** 0.75
- return SA, M, Mk, MR, E, T_imperial
+ building_weight = ((n-1) * M1 + M2 + M3) * 10
+ building_height = h * (n+1)  
+ imperial_period = CT * building_height ** 0.75
+ g = 10 #m/s2
+ Wk = Mk * g 
+ return SA, M, Mk, Wk, MR, E, building_weight, building_height, imperial_period
 
 def dynamic2(h,E,I,SA,M): 
  f= h**3 / (6 * E * I) #m/KN factor
@@ -495,13 +498,13 @@ def dynamic2(h,E,I,SA,M):
  return f, S, D, eigen_values, eigen_vectors, periods
 
 def seismic(periods,imperial_period,period1,period2,period3,building_weight,beta,
-eigen_vectors,M_vec):
+eigen_vectors,M_vec,Q):
     # convert to numpy array
     periods = np.asarray(periods, dtype=float)
     # capped periods according to RPA
     periods_new = np.minimum(periods, 1.3 * imperial_period)
     # coefficients
-    A, I, S, R, Q = 0.3, 1, 1.2, 4.5, 1.05
+    A, I, S, R, = 0.3, 1, 1.2, 4.5
     # initialize spectral acceleration vector
     SadT0 = np.zeros_like(periods_new)
     # interval 1
@@ -523,11 +526,17 @@ eigen_vectors,M_vec):
     lam = 0.85
     # modal base shear vector
     #V = lam * sadT0 * building_weight * beta
-    V = lam * SadT0 * building_weight 
+    V_vec = lam * SadT0 * building_weight 
     beta_new = beta.reshape(1, -1)      # (1, n_modes)
     SadT0_new    = SadT0.reshape(1, -1)       # (1, n_modes)
     M_vec_new     = M_vec.reshape(-1, 1)        # (n_floors, 1)
     g = 10
-    F = eigen_vectors * beta_new * SadT0_new * g * M_vec_new
-    return SadT0, V, F
+    F = eigen_vectors * beta_new * SadT0_new * g * M_vec_new   
+    Fsrss = np.sqrt(np.sum(F**2, axis=1))
+    V = np.cumsum(F[::-1, :], axis=0)[::-1, :] #or V = np.cumsum(F[::-1], axis=0)[::-1]
+    Vsrss = np.sqrt(np.sum(V**2, axis=1))
+
+    return periods_new, SadT0, V_vec, F, Fsrss, V, Vsrss
+ 
+#    F_srss = np.sqrt(np.sum(F**2, axis=0))
  
