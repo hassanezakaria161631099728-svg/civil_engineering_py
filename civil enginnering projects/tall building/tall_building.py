@@ -77,20 +77,39 @@ def dynamic():
  T2 = pd.DataFrame({"Elasticity_module": [E],"Iy": [Iy],"Ix": [Ix],"fx": [fx],"fy": [fy],"fw": [fw],
  "imperial_period":[imperial_period],"building_weight":building_weight,"building_height":building_height,
  "sum_alpha":sum_alpha})
- period1,period2,period3 = 0.1,0.5,2 #APR24 table3.4 
- #response spectrum
+ #response spectrum  
  Q = 1
- periods_new_x,SadT0x, V_vecx, Fx, Fsrssx, Vx, Vsrssx = \
- seismic(periods_x,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec,Q)
- periods_new_y,SadT0y, V_vecy, Fy, Fsrssy, Vy, Vsrssy = \
- seismic(periods_y,imperial_period,period1,period2,period3,building_weight,beta,eigen_vectors,M_vec,Q)
+ zone, Scategory, I_group = "VI", "S2", "2"
+ apr24 = read_tables_txt3("tall building/apr24.txt") #apr24 data
+ TAcc = apr24["acceleration_coefficient"] # acceleration coefficient table
+ A = TAcc[TAcc["seismic_zone"] == zone]["A"].iloc[0] # acceleration coefficient
+ typ = TAcc[TAcc["seismic_zone"] == zone]["type"].iloc[0] #type of spectrum
+ TI = apr24["importance_coefficient"] # importance coefficient table
+ I = TI[I_group].iloc[0]  # importance coefficient
+    
+ if typ == 1: Tspec = apr24["spectrum_type1"]
+ elif typ == 2: Tspec = apr24["spectrum_type2"]
+ else: raise ValueError("you have to identify the spectrum type wether it is 1 or 2")         
+ S = Tspec[Tspec["site_category"] == Scategory]["S"].iloc[0] 
+ period1 = Tspec[Tspec["site_category"] == Scategory]["T1"].iloc[0] 
+ period2 = Tspec[Tspec["site_category"] == Scategory]["T2"].iloc[0] 
+ period3 = Tspec[Tspec["site_category"] == Scategory]["T3"].iloc[0] 
+
+ periods_new_x,SadT0x, V_vecx, Fx, Fsrssx, Vx, Vsrssx, Mx, Msrssx, ux = \
+ seismic(periods_x,imperial_period,building_weight,beta,eigen_vectors,M_vec,Q,
+ period1,period2,period3,A,S,I,Sx)
+ periods_new_y,SadT0y, V_vecy, Fy, Fsrssy, Vy, Vsrssy, My, Msrssy, uy = \
+ seismic(periods_y,imperial_period,building_weight,beta,eigen_vectors,M_vec,Q,
+ period1,period2,period3,A,S,I,Sy)
  T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": V_vecx,"Vy": V_vecy,"beta":beta,
  "periods_new_x":periods_new_x,"periods_new_y":periods_new_y,
  "betaup2":betaup2,"betadown2":betadown2,"alpha":alpha})
- T4 = pd.DataFrame({"Fx":Fsrssx,"Fy":Fsrssy,"Vx":Vsrssx,"Vy":Vsrssy,"M":M_vec,"W":W_vec,})
- matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx,Fy,Vx,Vy,betaup1,betadown1]
+ T4 = pd.DataFrame({"Fx":Fsrssx,"Fy":Fsrssy,"Vx":Vsrssx,"Vy":Vsrssy,"M":M_vec,"W":W_vec,
+ "momentsx":Msrssx,"momentsy":Msrssy,"displacementsx":ux,"displacementsy":uy})
+ matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx, Fy, Vx, Vy, betaup1, betadown1,
+ Mx, My]
  names1 = ["SA","M","Sx","Dx","eigen_vectors","Sy","Dy","MR","Sw","Dw","forces_x","forces_y",
- "Vx","Vy","betaup","betadown"]
+ "shear_forcesx","shear_forcesy","betaup","betadown","momentsx","momentsy"]
  tables1 = matrices_to_tables2(matrices)
  tables2 = [T,T2,T3,T4]
  names2 = ["periods_secondes","scalars","vectors1","vectors2"]
@@ -102,7 +121,7 @@ def dynamic():
  #export results
  tables = tables1 + tables2
  names = names1 + names2 
- exptxt(tables, names, "tall building/dynamic.txt", 12)
+ exptxt(tables, names, "tall building/dynamic2.txt", 12)
 
 #this segment plot() is used to draw the building scheme in three axis systems X length Y width Z heigth
 #the upper view in XY axis where Z=0 
