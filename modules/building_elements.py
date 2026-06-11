@@ -497,14 +497,14 @@ def dynamic2(h,E,I,SA,M):
  periods = eigen_values ** 0.5 * 2 * 3.14
  return f, S, D, eigen_values, eigen_vectors, periods
 
-def seismic(periods,imperial_period,period1,period2,period3,building_weight,beta,
-eigen_vectors,M_vec,Q):
+def seismic(periods,imperial_period,building_weight,beta,eigen_vectors,M_vec,Q,
+period1,period2,period3,A,S,I,Mflex):
     # convert to numpy array
     periods = np.asarray(periods, dtype=float)
     # capped periods according to RPA
     periods_new = np.minimum(periods, 1.3 * imperial_period)
     # coefficients
-    A, I, S, R, = 0.3, 1, 1.2, 4.5
+    R = 4.5
     # initialize spectral acceleration vector
     SadT0 = np.zeros_like(periods_new)
     # interval 1
@@ -535,8 +535,11 @@ eigen_vectors,M_vec,Q):
     Fsrss = np.sqrt(np.sum(F**2, axis=1))
     V = np.cumsum(F[::-1, :], axis=0)[::-1, :] #or V = np.cumsum(F[::-1], axis=0)[::-1]
     Vsrss = np.sqrt(np.sum(V**2, axis=1))
-
-    return periods_new, SadT0, V_vec, F, Fsrss, V, Vsrss
+    M = moments_from_shear(V)
+    Msrss = np.sqrt(np.sum(M**2, axis=1))
+    Vflex = np.sum(Mflex, axis=1) 
+    u = Fsrss * Vflex
+    return periods_new, SadT0, V_vec, F, Fsrss, V, Vsrss, M, Msrss, u
  
 #    F_srss = np.sqrt(np.sum(F**2, axis=0))
  
