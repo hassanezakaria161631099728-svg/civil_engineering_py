@@ -234,8 +234,8 @@ def moments_from_shear(V, h=3.06):
 
     M = np.zeros_like(V, dtype=float)
 
-    for k in range(1, V.shape[0]):
-        M[k] = M[k-1] + V[k] * h
+    for k in range(V.shape[0]-1):
+        M[k] = M[k+1] + V[k+1] * h
 
     return M
 
