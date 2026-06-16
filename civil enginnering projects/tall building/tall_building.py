@@ -121,7 +121,7 @@ def dynamic():
  #export results
  tables = tables1 + tables2
  names = names1 + names2 
- exptxt(tables, names, "tall building/dynamic2.txt", 12)
+ exptxt(tables, names, "tall building/dynamic.txt", 12)
 
 #this segment plot() is used to draw the building scheme in three axis systems X length Y width Z heigth
 #the upper view in XY axis where Z=0 
