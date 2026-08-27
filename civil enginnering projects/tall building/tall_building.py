@@ -45,15 +45,17 @@ def elements():
  tables, names = tables1 + tables2 + tables3, names1 + names2 + names3
  exptxt(tables, names, "tall building/elements.txt", 12)
 
-#this segment dynamic() is used to study the mouvement of the building due to it's proper mass without any external forces and this by using the functions dynamic1 and dynamic2 and then 
-#studying the mouvement of the building due to external forces and we mean seismic analysis and in this code we use the algerian regulation made at 2024 we refer to it as APR24 Algerian paraseimic regulation
+#this segment dynamic() is used to study the mouvement of the building due to it's proper mass
+#without any external forces and this by using the functions dynamic1 and dynamic2 and then 
+#studying the mouvement of the building due to external forces and we mean seismic analysis and in this code
+#we use the algerian regulation made at 2024 we refer to it as APR24 Algerian paraseimic regulation
   
 def dynamic():
  print("Running case 4: dynamic analysis")
  # your code here
- n = 8 #number of floors above the base floor
- M1, M2, M3 = 805, 802.66, 795.6 #masses
- Lx, Ly = 29, 21
+ n = 9 #number of floors above the base floor
+ M1, M2, M3 = 613, 605, 535.895 #masses
+ Lx, Ly = 24.2, 21
  # SA and mass matrices and Elasticity module
  h = 3.06 #m story height
  # case there is only "with bricks" or "no bricks"
@@ -61,7 +63,7 @@ def dynamic():
  fc28 = 30
  SA, M, M_vec, W_vec, MR, E, building_weight, building_height, imperial_period = \
  dynamic1(n,M1,M2,M3,h,case,Lx,Ly,fc28)
- Ix, Iy, Iw = 15.379, 15.72, 4581.9
+ Ix, Iy, Iw = 16.894, 16.44, 4581.9
  fx, Sx, Dx, eigen_valuesx, eigen_vectors, periods_x = dynamic2(h,E,Iy,SA,M) 
  fy, Sy, Dy, eigen_valuesy, _, periods_y = dynamic2(h,E,Ix,SA,M) 
  fw, Sw, Dw, eigen_valuesw, _, periods_w = dynamic2(h,E,Iw,SA,MR) 
@@ -79,7 +81,7 @@ def dynamic():
  "sum_alpha":sum_alpha})
  #response spectrum  
  Q = 1
- zone, Scategory, I_group = "VI", "S2", "2"
+ zone, Scategory, I_group = "VI", "S3", "2"
  apr24 = read_tables_txt3("tall building/apr24.txt") #apr24 data
  TAcc = apr24["acceleration_coefficient"] # acceleration coefficient table
  A = TAcc[TAcc["seismic_zone"] == zone]["A"].iloc[0] # acceleration coefficient
@@ -104,7 +106,7 @@ def dynamic():
  T3 = pd.DataFrame({"sadT0x": SadT0x,"sadT0y": SadT0y,"Vx": V_vecx,"Vy": V_vecy,"beta":beta,
  "periods_new_x":periods_new_x,"periods_new_y":periods_new_y,
  "betaup2":betaup2,"betadown2":betadown2,"alpha":alpha})
- T4 = pd.DataFrame({"Fx":Fsrssx,"Fy":Fsrssy,"Vx":Vsrssx,"Vy":Vsrssy,"M":M_vec,"W":W_vec,
+ T4 = pd.DataFrame({"Fx":Fsrssx,"Fy":Fsrssy,"Vx":Vsrssx,"Vy":Vsrssy,
  "momentsx":Msrssx,"momentsy":Msrssy,"displacementsx":ux,"displacementsy":uy})
  matrices = [SA, M, Sx, Dx, eigen_vectors, Sy, Dy, MR, Sw, Dw, Fx, Fy, Vx, Vy, betaup1, betadown1,
  Mx, My]
