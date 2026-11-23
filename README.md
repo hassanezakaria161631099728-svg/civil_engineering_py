@@ -91,9 +91,6 @@ vim --version
 
 note: if anything of these commands failed please contact me in telegram or join tiktok live broadcast and explain the issue 
 
-
 to contact me:
-
-email: hassane.zakaria.161631099728@gmail.com
 
 X account: https://x.com/HassaneZak76591
