@@ -51,17 +51,28 @@ notepad install-vim-path.ps1
 note:paste this powershell script in the notepad file you just opened 
 
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+
 $vimPath = "$env:LOCALAPPDATA\Programs\Vim"
+
 if (($userPath -split ';') -notcontains $vimPath) {
+
     [Environment]::SetEnvironmentVariable(
+
         "Path",
+ 
         "$userPath;$vimPath",
+        
         "User"
     )
+    
     Write-Host "Vim successfully added to PATH!" -ForegroundColor Green
+
 }
+
 else {
+
     Write-Host "Vim is already in PATH." -ForegroundColor Yellow
+
 }
 
 save file and quit
